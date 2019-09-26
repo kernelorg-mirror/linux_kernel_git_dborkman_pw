@@ -1,0 +1,14 @@
+[general]
+	maildir = ~/.l2md/maildir/common
+	period = 30
+
+[repo bpf]
+	url = https://lore.kernel.org/bpf/0
+	maildir = ~/.l2md/maildir/bpf
+	initial_import = 10000
+
+[repo netdev]
+	url = https://lore.kernel.org/netdev/1
+	url = https://lore.kernel.org/netdev/0
+	maildir = ~/.l2md/maildir/netdev
+	initial_import = 10000

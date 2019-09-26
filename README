@@ -1,0 +1,181 @@
+Kernel patch/review workflow
+============================
+
+Minimal howto for the tools involved in my daily patch handling and kernel
+mailing list interaction. It may be not perfect and the workflow as well
+as tooling/scripts can be improved for sure, but I thought I'd document it
+here for myself or others in case it's found useful. The example config
+is very much bpf and netdev centric and needs to be adapted for other
+subsystems.
+
+Please send patches to Daniel Borkmann <daniel@iogearbox.net>.
+
+Used tooling:
+-------------
+
+I mainly use git, git-pw, git-send-email, l2md, pw-*, quilttools, msmtp,
+mutt and patchwork UI for all my daily list workflow. The command-line
+tools themselves can be obtained via:
+
+  - git, git-send-email, msmtp, mutt (available as distro packages)
+  - git://git.kernel.org/pub/scm/linux/kernel/git/tglx/quilttools.git
+  - git://git.kernel.org/pub/scm/linux/kernel/git/dborkman/l2md.git
+  - git://git.kernel.org/pub/scm/linux/kernel/git/dborkman/pw.git
+  - https://github.com/getpatchwork/git-pw
+
+Base setup:
+-----------
+
+Example configs for various tools are in this repository as well.
+
+1. git-pw:
+~~~~~~~~~~
+
+Configuration of git-pw is straight forward, simply follow the below
+steps. The authentication token can be generated from the patchwork
+UI from https://patchwork.ozlabs.org/user/. Below example is related
+to netdev:
+
+  $ git config --global pw.server 'https://patchwork.ozlabs.org/'
+  $ git config --global pw.project 'netdev'
+  $ git config --global pw.token 'API-TOKEN'
+
+2. quilttools aka mb2q:
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Example .mb2q.yaml in this repo, needs to be in home directory. More
+information on the options can be found in the quilttools repository.
+
+quilttools as well as git-pw is needed for the pw-apply tool in this
+repository. Although I don't use quilt, I really like mb2q's patch
+normalization.
+
+3. l2md:
+~~~~~~~~
+
+Example .l2mdconfig for lists I follow in this repo, needs to be in home
+directory. The l2md repository also has additional information with
+regards to mutt integration and a service unit file for letting it run
+in the background automatically. I'm using l2md for fetching new emails
+and msmtp for sending them. My l2md feeds into mutt, and msmtp is used
+for mutt as well as git-send-email.
+
+Patch handling:
+---------------
+
+Main tools are pw-apply and pw-pull, both minimal, quick and dirty scripts
+to get the job done. pw-check is called from pw-apply. pw-backport for the
+backports to the stable tree. Patches for improving them are very welcome.
+
+1. Initial patch triage:
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Patches from netdev and bpf lists land under netdev patchwork project, hence
+first manual step is to delegate them accordingly such that they land in the
+delegate's todo:
+
+  https://patchwork.ozlabs.org/project/netdev/list/
+
+Todo list:
+
+  https://patchwork.ozlabs.org/user/todo/netdev/
+
+From public view, the current BPF todo list is accessible via:
+
+  https://patchwork.ozlabs.org/project/netdev/list/?series=&submitter=&state=&q=&archive=&delegate=77147
+
+All delegation and setting patches into 'Changes requested' is done through
+the web UI. This remains to be improved for more automation.
+
+2. Applying patches:
+~~~~~~~~~~~~~~~~~~~~
+
+Applying patches from patchwork, add Tested-by, and Acked-by from others.
+Patches are always identified by the series id even if it's just a single
+patch. Use -t/-a to propagate tags from the cover letter to individual
+patches, multiple people separated by comma:
+
+  $ pw-apply -s 132626 -- -t 'Joe Hacker <j@hack.er>' -a 'Joe Hacker <jh@ack.er>, Acker Jon <ack@er.jon>'
+
+The pw-apply tool can also handle mboxes directly compressed in gzip or
+uncompressed format:
+
+  $ pw-apply -m https://patchwork.ozlabs.org/series/132626/mbox/ -- -t 'Joe Hacker <j@hack.er>'
+
+Another example without adding optional tags, this time from lore:
+
+  $ pw-apply -m https://lore.kernel.org/bpf/20190925203745.3173184-1-andriin@fb.com/t.mbox.gz
+
+The pw-apply tool normalizes the patches through mb2q, sorts and groups
+tags, adds permanent links to the lore list archive and merges them into
+the master branch with the maintainer's SOB added to the chain.
+
+After they have been applied and sanity checked successfully, mark patches
+as accepted in patchwork. The -a before the optional "--" will tell pw-apply
+to mark the series as accepted, it does _not_ re-apply the series or do
+anything else:
+
+  $ pw-apply -s 132626 -a
+
+Note that this does not work in combination with the -m parameter since
+the stand-alone mailbox does not have any context of patchwork.
+
+Full workflow:
+
+  $ pw-apply -s 132626
+  # Double check if all looks good in the git log
+  $ pw-apply -s 132626 -a
+
+Currently, the acceptance email must be sent manually, but this will be
+automated in near term and integrated into -a.
+
+Side-note, manual sanity checking:
+
+  $ pw-check -s e3439af4a339acd7fddbd6d59b8ecefaac07a611 -e d21b06927c8bf8083c64a95f272bc5491682ae24
+  Commit: d21b06927c8b ("bpf: Fix bpf_event_output re-entry issue")
+        Fixes tag: Fixes: ae5a3a828cd0 ("bpf: add perf event notificaton support for sock_ops")
+        Has these problem(s):
+              - Target SHA1 does not exist
+
+Note that pw-check is called automatically for all applied patches through
+pw-apply, so above example output is just to demonstrate a manual workflow.
+
+3. Pull requests:
+~~~~~~~~~~~~~~~~~
+
+Pull requests together with a consistent format are created as described in
+below example. I do like consistency, hence even the pre-cooked template.
+The commit sha is the merge base, meaning the last commit that both trees
+had before patches have been applied. This could be automated but my own
+preference is to explicitly state it here as both {bpf,bpf-next} trees don't
+have too many commits piling up. Again, this workflow is mostly bpf specific
+and the scripts would need to be adapted for other subsystems.
+
+  $ pw-pull -t bpf -s aef70a1f44c0b570e6345c02c2d240471859f0a4
+  PR: pr-bpf-2019-09-26.patch
+
+Currently the -t option only accepts: bpf, bpf-next
+
+The resulting file is then edited to describe the changes that the pull-request
+contains. It's then sent out same way as other patches through git-send-email:
+
+  $ git send-email --to davem@davemloft.net --cc jakub.kicinski@netronome.com --cc daniel@iogearbox.net --cc ast@kernel.org --cc netdev@vger.kernel.org --cc bpf@vger.kernel.org pr-bpf-2019-09-26.patch
+
+The PR will then show up the usual way in patchwork and assigned to the higher
+level maintainer delegate for pulling.
+
+4. Backporting to stable:
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Backporting is done through the pw-backport tool which automatically adds the
+SOB and upstream commit sha to the commit message.
+
+It's tailored to https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/.
+In the local git clone, the following workflow can be used:
+
+  $ git pull origin master
+  $ git checkout -b linux-5.3.y origin/linux-5.3.y
+  $ pw-backport d895a0f16fadb26d22ab531c49768f7642ae5c3e
+  Applying: d895a0f16fad bpf: fix accessing bpf_sysctl.file_pos on s390
+
+The pw-backport can also take multiple shas as command line arguments.

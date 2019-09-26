@@ -1,0 +1,38 @@
+[user]
+	name = Daniel Borkmann
+	email = daniel@iogearbox.net
+
+[sendmail]
+	smtpserver = smtp.iogearbox.net
+	suppresscc = all
+	chainreplyto = false
+	suppressfrom = true
+
+[color]
+	ui = auto
+
+[diff "default"]
+	xfuncname = "^[[:alpha:]$_].*[^:]$"
+
+[credential]
+	helper = cache
+
+[diff]
+	renames = false
+
+[format]
+	numbered = auto
+	thread = shallow
+
+[log]
+	mailmap = true
+
+[url "ssh://git@gitolite.kernel.org"]
+	insteadOf = https://git.kernel.org
+	insteadOf = http://git.kernel.org
+	insteadOf = git://git.kernel.org
+
+[pw]
+	server = https://patchwork.ozlabs.org/
+	project = netdev
+	token = xyz

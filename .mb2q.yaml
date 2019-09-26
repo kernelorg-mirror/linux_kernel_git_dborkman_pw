@@ -1,0 +1,16 @@
+committer: Daniel Borkmann <daniel@iogearbox.net>
+
+nocc_addrs:
+ - daniel@iogearbox.net
+
+list_addrs:
+ - bpf@vger.kernel.org
+
+drop_from:
+ - '<MAILER-DAEMON@'
+
+link_base: https://lore.kernel.org/bpf/
+
+dropcc: False
+
+sob_before_cc: True

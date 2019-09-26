@@ -1,0 +1,221 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
+#
+# Major parts from verify_fixes.sh and verify_signedoff.sh by
+# Stephen and Greg. Only integrated the checks into pw-check.
+#
+# Copyright (C) 2019 Stephen Rothwell <sfr@canb.auug.org.au>
+# Copyright (C) 2019 Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+# Copyright (C) 2019 Daniel Borkmann <daniel@iogearbox.net>
+
+usage()
+{
+  cat <<-EOF
+  usage: pw-check [-h] [-s START_COMMIT] [-e END_COMMIT]
+EOF
+  exit
+}
+
+split_re='^([Cc][Oo][Mm][Mm][Ii][Tt])?[[:space:]]*([[:xdigit:]]{5,})([[:space:]]*)(.*)$'
+nl=$'\n'
+tab=$'\t'
+
+strip_spaces()
+{
+  [[ "$1" =~ ^[[:space:]]*(.*[^[:space:]])[[:space:]]*$ ]]
+  echo "${BASH_REMATCH[1]}"
+}
+
+verify_fixes()
+{
+  git_range=$1
+  error=0
+  commits=$(git rev-list --no-merges -i --grep='^[[:space:]]*Fixes:' "${git_range}")
+  if [ -z "$commits" ]; then
+    return 0
+  fi
+
+  for c in $commits; do
+    commit_log=$(git log -1 --format='%h ("%s")' "$c")
+    commit_msg="Commit: $commit_log
+"
+    fixes_lines=$(git log -1 --format='%B' "$c" |
+      grep -i '^[[:space:]]*Fixes:')
+
+    while read -r fline; do
+      [[ "$fline" =~ ^[[:space:]]*[Ff][Ii][Xx][Ee][Ss]:[[:space:]]*(.*)$ ]]
+      f="${BASH_REMATCH[1]}"
+      fixes_msg="	Fixes tag: $fline
+	Has these problem(s):
+"
+      sha=
+      subject=
+      msg=
+      if [[ "$f" =~ $split_re ]]; then
+        first="${BASH_REMATCH[1]}"
+        sha="${BASH_REMATCH[2]}"
+        spaces="${BASH_REMATCH[3]}"
+        subject="${BASH_REMATCH[4]}"
+        if [ "$first" ]; then
+          msg="${msg:+${msg}${nl}}${tab}${tab}- leading word '$first' unexpected"
+        fi
+        if [ -z "$subject" ]; then
+          msg="${msg:+${msg}${nl}}${tab}${tab}- missing subject"
+        elif [ -z "$spaces" ]; then
+          msg="${msg:+${msg}${nl}}${tab}${tab}- missing space between the SHA1 and the subject"
+        fi
+      else
+        printf '%s%s\t\t- %s\n' "$commit_msg" "$fixes_msg" 'No SHA1 recognised'
+	commit_msg=''
+	error=1
+	continue
+      fi
+      if ! git rev-parse -q --verify "$sha" >/dev/null; then
+        printf '%s%s\t\t- %s\n' "$commit_msg" "$fixes_msg" 'Target SHA1 does not exist'
+	commit_msg=''
+	error=1
+	continue
+      fi
+
+      if [ "${#sha}" -lt 12 ]; then
+        msg="${msg:+${msg}${nl}}${tab}${tab}- SHA1 should be at least 12 digits long${nl}${tab}${tab}  Can be fixed by setting core.abbrev to 12 (or more) or (for git v2.11${nl}${tab}${tab}  or later) just making sure it is not set (or set to \"auto\")."
+      fi
+      # reduce the subject to the part between () if there
+      if [[ "$subject" =~ ^\((.*)\) ]]; then
+        subject="${BASH_REMATCH[1]}"
+      elif [[ "$subject" =~ ^\((.*) ]]; then
+        subject="${BASH_REMATCH[1]}"
+        msg="${msg:+${msg}${nl}}${tab}${tab}- Subject has leading but no trailing parentheses"
+      fi
+
+      # strip matching quotes at the start and end of the subject
+      # the unicode characters in the classes are
+      # U+201C LEFT DOUBLE QUOTATION MARK
+      # U+201D RIGHT DOUBLE QUOTATION MARK
+      # U+2018 LEFT SINGLE QUOTATION MARK
+      # U+2019 RIGHT SINGLE QUOTATION MARK
+      re1=$'^[\"\u201C](.*)[\"\u201D]$'
+      re2=$'^[\'\u2018](.*)[\'\u2019]$'
+      re3=$'^[\"\'\u201C\u2018](.*)$'
+
+      if [[ "$subject" =~ $re1 ]]; then
+        subject="${BASH_REMATCH[1]}"
+      elif [[ "$subject" =~ $re2 ]]; then
+        subject="${BASH_REMATCH[1]}"
+      elif [[ "$subject" =~ $re3 ]]; then
+        subject="${BASH_REMATCH[1]}"
+        msg="${msg:+${msg}${nl}}${tab}${tab}- Subject has leading but no trailing quotes"
+      fi
+
+      subject=$(strip_spaces "$subject")
+
+      target_subject=$(git log -1 --format='%s' "$sha")
+      target_subject=$(strip_spaces "$target_subject")
+
+      # match with ellipses
+      case "$subject" in
+        *...) subject="${subject%...}"
+              target_subject="${target_subject:0:${#subject}}"
+              ;;
+        ...*) subject="${subject#...}"
+              target_subject="${target_subject: -${#subject}}"
+              ;;
+        *\ ...\ *)
+              s1="${subject% ... *}"
+              s2="${subject#* ... }"
+              subject="$s1 $s2"
+              t1="${target_subject:0:${#s1}}"
+              t2="${target_subject: -${#s2}}"
+              target_subject="$t1 $t2"
+              ;;
+      esac
+
+      subject=$(strip_spaces "$subject")
+      target_subject=$(strip_spaces "$target_subject")
+
+      if [ "$subject" != "${target_subject:0:${#subject}}" ]; then
+        msg="${msg:+${msg}${nl}}${tab}${tab}- Subject does not match target commit subject${nl}${tab}${tab}  Just use${nl}${tab}${tab}${tab}git log -1 --format='Fixes: %h (\"%s\")'"
+      fi
+
+      lsha=$(git rev-parse -q --verify "$sha")
+      if [ -z "$lsha" ]; then
+        count=$(git rev-list --count "$sha".."$c")
+        if [ "$count" -eq 0 ]; then
+          msg="${msg:+${msg}${nl}}${tab}${tab}- Target is not an ancestor of this commit"
+        fi
+      fi
+
+      if [ "$msg" ]; then
+        printf '%s%s%s\n' "$commit_msg" "$fixes_msg" "$msg"
+        commit_msg=''
+        error=1
+      fi
+    done <<< "$fixes_lines"
+  done
+
+  if [ ${error} -eq 1 ] ; then
+    exit 1
+  fi
+}
+
+verify_signedoff()
+{
+  git_range=$1
+  error=false
+  for c in $(git rev-list --no-merges "${git_range}"); do
+    ae=$(git log -1 --format='%ae' "$c")
+    aE=$(git log -1 --format='%aE' "$c")
+    an=$(git log -1 --format='%an' "$c")
+    aN=$(git log -1 --format='%aN' "$c")
+    ce=$(git log -1 --format='%ce' "$c")
+    cE=$(git log -1 --format='%cE' "$c")
+    cn=$(git log -1 --format='%cn' "$c")
+    cN=$(git log -1 --format='%cN' "$c")
+    sob=$(git log -1 --format='%b' "$c" | grep -i '^[[:space:]]*Signed-off-by:')
+
+    am=false
+    cm=false
+    grep -i -q "<$ae>" <<<"$sob" ||
+      grep -i -q "<$aE>" <<<"$sob" ||
+      grep -i -q ":[[:space:]]*${an}[[:space:]]*<" <<<"$sob" ||
+      grep -i -q ":[[:space:]]*${aN}[[:space:]]*<" <<<"$sob" ||
+      am=true
+    grep -i -q "<$ce>" <<<"$sob" ||
+      grep -i -q "<$cE>" <<<"$sob" ||
+      grep -i -q ":[[:space:]]*${cn}[[:space:]]*<" <<<"$sob" ||
+      grep -i -q ":[[:space:]]*${cN}[[:space:]]*<" <<<"$sob" ||
+      cm=true
+
+    if "$am" || "$cm"; then
+      printf "Commit %s\n" "$(git show -s --abbrev-commit --abbrev=12 --pretty=format:"%h (\"%s\")%n" "${c}")"
+             "$am" && printf "\tauthor Signed-off-by missing\n"
+             "$cm" && printf "\tcommitter Signed-off-by missing\n"
+      printf "\tauthor email:    %s\n" "$ae"
+      printf "\tcommitter email: %s\n"  "$ce"
+      readarray -t s <<< "${sob}"
+      printf "\t%s\n" "${s[@]}"
+      printf "\n"
+      error=true
+    fi
+  done
+  if "$error"; then
+    echo "Errors in tree with Signed-off-by, please fix!"
+    exit 1
+  fi
+}
+
+from=""
+to=""
+while true; do
+  case "$1" in
+    -s | --start ) from="$2"; shift 2 ;;
+    -e | --end ) to="$2"; shift 2 ;;
+    -h | --help ) usage; break ;;
+    * )  break ;;
+  esac
+done
+[ -z "$from" ] && usage
+[ -z "$to" ]  && usage
+verify_signedoff "$from..$to"
+verify_fixes "$from..$to"
+echo "Checked $from -> $to: OK"

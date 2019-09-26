@@ -1,0 +1,47 @@
+#!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
+#
+# Copyright (C) 2019 Daniel Borkmann <daniel@iogearbox.net>
+# Copyright (C) 2019 Authors of Cilium
+
+cherry_pick()
+{
+  REM="origin/master"
+  CID=$1
+  BRANCHES=`git branch -q -r --contains $CID $REM 2> /dev/null`
+  if ! echo ${BRANCHES} | grep -q ".*master.*"; then
+    echo "Commit $CID not in $REM!"
+    exit 1
+  fi
+  TMPF=`mktemp cp.XXXXXX`
+  FROM=`git show --pretty=email $CID | head -n 2 | grep "From: "`
+  FULL_ID=`git show $CID | head -n 1 | cut -f 2 -d ' '`
+  git format-patch -1 $FULL_ID --stdout | sed '/^$/Q' > $TMPF
+  echo "" >> $TMPF
+  echo "[ upstream commit $FULL_ID ]" >> $TMPF
+  git format-patch -1 $FULL_ID --stdout | sed -n '/^$/,$p' >> $TMPF
+  echo "Applying: $(git log -1 --oneline $FULL_ID)"
+  git am --quiet -3 --signoff $TMPF
+  rm $TMPF
+}
+
+main()
+{
+  for CID in "$@"; do
+    cherry_pick "$CID"
+  done
+}
+
+usage()
+{
+  cat <<-EOF
+  usage: pw-backport <commit-id> [commit-id ...]
+EOF
+  exit
+}
+
+if [ $# -lt 1 ]; then
+  usage
+fi
+
+main "$@"

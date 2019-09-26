@@ -1,0 +1,70 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
+#
+# Copyright (C) 2019 Daniel Borkmann <daniel@iogearbox.net>
+
+usage()
+{
+  cat <<-EOF
+  usage: pw-apply [-h] [-s SERIES] [-m MBOX] [-a] -- [-C]
+                  [-a ACKEDBY] [-r REVIEWEDBY] [-t TESTEDBY]
+EOF
+  exit
+}
+
+mbox_from_url()
+{
+  curl $1 | gunzip -f -c > mbox.i
+}
+
+mbox_from_series()
+{
+  git pw series show $1 -f simple 2> /dev/null | \
+    sed ''/Complete/s//$(printf "\033[1mComplete\033[0m")/''
+  git pw series download $1 mbox.i 2> /dev/null
+}
+
+accept_series()
+{
+  for patch in $(git pw series show $1 -f simple 2> /dev/null | \
+                   sed -n '/^Patches/,$p' | \
+                   sed -r 's/.* ([0-9]*) .*/\1/g')
+  do
+    echo "Accepting $patch:"
+    git pw patch update --state accepted $patch -f simple 2> /dev/null
+  done
+  echo "Done, all accepted!"
+  rm -f mbox.i
+  exit
+}
+
+branch="mbox"
+series=""
+accept=""
+mbox=""
+head_old=$(git rev-parse --verify HEAD)
+while true; do
+  case "$1" in
+    -s | --series ) series="$2"; shift 2 ;;
+    -a | --accept ) accept="1"; shift ;;
+    -m | --mbox ) mbox="$2"; shift 2 ;;
+    -h | --help ) usage; break ;;
+    -- ) shift; break ;;
+    * )  break ;;
+  esac
+done
+[ ! -z "$mbox" ]   && [ ! -z "$series" ] && usage
+[   -z "$mbox" ]   && [   -z "$series" ] && usage
+[ ! -z "$accept" ] && [ ! -z "$mbox" ]   && usage
+[ ! -z "$series" ] && mbox_from_series $series
+[ ! -z "$mbox" ]   && mbox_from_url $mbox
+[ ! -z "$accept" ] && accept_series $series
+git checkout -b $branch
+mb2q --mboxout mbox.o "$@" mbox.i
+git am -3 mbox.o
+git checkout master
+git merge --stat --ff $branch
+git branch -d $branch
+rm -f mbox.i mbox.o
+head_new=$(git rev-parse --verify HEAD)
+pw-check -s $head_old -e $head_new
