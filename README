@@ -40,6 +40,11 @@ to netdev:
   $ git config --global pw.project 'netdev'
   $ git config --global pw.token 'API-TOKEN'
 
+Note that git-pw must be at least version 1.7.0 or higher as earlier
+versions have issues to decode received mboxes in some cases:
+
+  https://github.com/getpatchwork/git-pw/issues/52
+
 2. quilttools aka mb2q:
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -53,12 +58,14 @@ normalization.
 3. l2md:
 ~~~~~~~~
 
-Example .l2mdconfig for lists I follow in this repo, needs to be in home
-directory. The l2md repository also has additional information with
-regards to mutt integration and a service unit file for letting it run
-in the background automatically. I'm using l2md for fetching new emails
+I'm using l2md for fetching new emails via lore.kernel.org git archives
 and msmtp for sending them. My l2md feeds into mutt, and msmtp is used
 for mutt as well as git-send-email.
+
+Example .l2mdconfig for lists I follow in this repo, needs to be in
+home directory. The l2md repository also has additional information
+with regards to mutt and procmail integration and a service unit file
+for letting it run in the background automatically.
 
 Patch handling:
 ---------------
