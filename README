@@ -107,11 +107,11 @@ patches, multiple people separated by comma:
 The pw-apply tool can also handle mboxes directly compressed in gzip or
 uncompressed format:
 
-  $ pw-apply -m https://patchwork.ozlabs.org/series/132626/mbox/ -- -t 'Joe Hacker <j@hack.er>'
+  $ pw-apply -b https://patchwork.ozlabs.org/series/132626/mbox/ -- -t 'Joe Hacker <j@hack.er>'
 
 Another example without adding optional tags, this time from lore:
 
-  $ pw-apply -m https://lore.kernel.org/bpf/20190925203745.3173184-1-andriin@fb.com/t.mbox.gz
+  $ pw-apply -b https://lore.kernel.org/bpf/20190925203745.3173184-1-andriin@fb.com/t.mbox.gz
 
 The pw-apply tool normalizes the patches through mb2q, sorts and groups
 tags, adds permanent links to the lore list archive and merges them into
@@ -124,7 +124,7 @@ anything else:
 
   $ pw-apply -s 132626 -a
 
-Note that this does not work in combination with the -m parameter since
+Note that this does not work in combination with the -b parameter since
 the stand-alone mailbox does not have any context of patchwork.
 
 Full workflow:

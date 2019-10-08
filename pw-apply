@@ -6,7 +6,7 @@
 usage()
 {
   cat <<-EOF
-  usage: pw-apply [-h] [-s SERIES] [-m MBOX] [-a] -- [-C]
+  usage: pw-apply [-h] [-s SERIES] [-b MBOX] [-a] -- [-C]
                   [-a ACKEDBY] [-r REVIEWEDBY] [-t TESTEDBY]
 EOF
   exit
@@ -47,7 +47,7 @@ while true; do
   case "$1" in
     -s | --series ) series="$2"; shift 2 ;;
     -a | --accept ) accept="1"; shift ;;
-    -m | --mbox ) mbox="$2"; shift 2 ;;
+    -b | --mbox ) mbox="$2"; shift 2 ;;
     -h | --help ) usage; break ;;
     -- ) shift; break ;;
     * )  break ;;
