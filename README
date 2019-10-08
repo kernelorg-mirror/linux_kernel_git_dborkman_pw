@@ -113,6 +113,11 @@ Another example without adding optional tags, this time from lore:
 
   $ pw-apply -b https://lore.kernel.org/bpf/20190925203745.3173184-1-andriin@fb.com/t.mbox.gz
 
+Similar example with adding an explicit merge commit with branch name
+bpf-foo-bar:
+
+  $ pw-apply -s 132626 -m bpf-foo-bar
+
 The pw-apply tool normalizes the patches through mb2q, sorts and groups
 tags, adds permanent links to the lore list archive and merges them into
 the master branch with the maintainer's SOB added to the chain.

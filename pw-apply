@@ -6,7 +6,7 @@
 usage()
 {
   cat <<-EOF
-  usage: pw-apply [-h] [-s SERIES] [-b MBOX] [-a] -- [-C]
+  usage: pw-apply [-h] [-s SERIES] [-b MBOX] [-m BRANCHNAME] [-a] -- [-C]
                   [-a ACKEDBY] [-r REVIEWEDBY] [-t TESTEDBY]
 EOF
   exit
@@ -41,12 +41,14 @@ accept_series()
 branch="mbox"
 series=""
 accept=""
+merge=""
 mbox=""
 head_old=$(git rev-parse --verify HEAD)
 while true; do
   case "$1" in
     -s | --series ) series="$2"; shift 2 ;;
     -a | --accept ) accept="1"; shift ;;
+    -m | --merge ) merge="1"; branch="$2"; shift 2 ;;
     -b | --mbox ) mbox="$2"; shift 2 ;;
     -h | --help ) usage; break ;;
     -- ) shift; break ;;
@@ -63,8 +65,23 @@ git checkout -b $branch
 mb2q --mboxout mbox.o "$@" mbox.i
 git am -3 mbox.o
 git checkout master
-git merge --stat --ff $branch
+if [ ! -z "$merge" ]; then
+  git merge --stat --log --no-edit --no-ff $branch
+  git commit --amend --signoff -F- <<EOF
+Merge branch '$branch'
+
+XYZ says:
+
+====================
+====================
+EOF
+else
+  git merge --stat --ff $branch
+fi
 git branch -d $branch
 rm -f mbox.i mbox.o
 head_new=$(git rev-parse --verify HEAD)
 pw-check -s $head_old -e $head_new
+if [ ! -z "$merge" ]; then
+  echo "Edit merge commit via: git commit --amend"
+fi
