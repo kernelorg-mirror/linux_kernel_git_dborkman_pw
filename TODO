@@ -1,0 +1,10 @@
+- Automatically send an acceptance notification for `pw-apply -s <series-id> -a`
+  based on the message id of either the cover letter or the first patch if former
+  is not present. Needs to be extracted from patchwork API potentially though it
+  is not possible right now to fetch message id from cover letter.
+
+  - https://github.com/getpatchwork/git-pw/issues/50
+  - https://github.com/getpatchwork/git-pw/issues/51
+
+- Fix pw-apply to roll-back everything and go back to master branch if an error
+  occured during getting the series or mbox merged and checked.
