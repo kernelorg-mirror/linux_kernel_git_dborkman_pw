@@ -24,13 +24,18 @@ while true; do
     * )  break ;;
   esac
 done
-[ -z "$since" ] && usage
 [ -z "$tree" ]  && usage
 case $tree in
   bpf-next ) remote=(net-next git://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
   bpf ) remote=(net git://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
   * ) usage ;;
 esac
+if [ -z "$since" ]; then
+  git fetch ${remote[0]}
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  since=$(git merge-base $branch ${remote[0]}/master)
+fi
+[ -z "$since" ] && usage
 
 old=$(git log $since -n 1 --format=%ct)
 new=$(git log HEAD   -n 1 --format=%ct)

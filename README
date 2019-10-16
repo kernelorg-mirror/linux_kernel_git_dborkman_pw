@@ -168,6 +168,14 @@ and the scripts would need to be adapted for other subsystems.
 
 Currently the -t option only accepts: bpf, bpf-next
 
+The -s option is optional and if not specified then pw-pull will determine
+the merge base automatically. In order for this to work, it requires that
+there is a net (for -t bpf) or net-next (for -t bpf-next) remote in the
+repository. To generate the PR, simply do:
+
+  $ pw-pull -t bpf
+  PR: pr-bpf-2019-09-26.patch
+
 The resulting file is then edited to describe the changes that the pull-request
 contains. It's then sent out same way as other patches through git-send-email:
 
