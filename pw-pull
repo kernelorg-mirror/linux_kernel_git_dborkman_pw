@@ -42,11 +42,11 @@ new=$(git log HEAD   -n 1 --format=%ct)
 delta=$((($new - $old)/(60*60*24)+1))
 count=$(git rev-list --no-merges --count $since...HEAD)
 what=$(git diff --stat $since...HEAD | tail -n1)
-thanks=$(git log --no-merges $since...HEAD --format="%aN" | sort | uniq | sort -n | sed ':a;N;$!ba;s/\n/, /g' | fold -s -w73)
+thanks=$(git log --no-merges $since...HEAD --format="%b" | awk '$1 ~ /Reported-by:|Acked-by:|Reviewed-by:|Tested-by:/' | cut -d ' ' -f2- | cut -d '<' -f1 | awk '{$1=$1};1' | grep -v '@' | sort | uniq | sort -n | sed ':a;N;$!ba;s/\n/, /g' | fold -s -w73)
 
 file="pr-$tree-$today.patch"
 git request-pull $since ${remote[1]} > $file
-echo -e "Subject: pull-request: $tree $today\n\nHi David,\n\nThe following pull-request contains BPF updates for your *${remote[0]}* tree.\n\nWe've added $count non-merge commits during the last $delta day(s) which contain\na total of$what.\n\nThe main changes are:\n\n1) ..., from XYZ. Among others:\n\n    - Blah blah sub item.\n\n2) ..., from ABC.\n\nPlease consider pulling these changes from:\n\n  git://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git\n\nThanks a lot!\n\nContributors in this PR are:\n\n$thanks\n\nThanks everyone!\n\n----------------------------------------------------------------\n\n$(cat $file)" > $file
+echo -e "Subject: pull-request: $tree $today\n\nHi David,\n\nThe following pull-request contains BPF updates for your *${remote[0]}* tree.\n\nWe've added $count non-merge commits during the last $delta day(s) which contain\na total of$what.\n\nThe main changes are:\n\n1) ..., from XYZ. Among others:\n\n    - Blah blah sub item.\n\n2) ..., from ABC.\n\nPlease consider pulling these changes from:\n\n  git://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git\n\nThanks a lot!\n\nAlso thanks to reporters, reviewers and testers of commits in this pull-request:\n\n$thanks\n\n----------------------------------------------------------------\n\n$(cat $file)" > $file
 bug=$(grep -c gitolite $file)
 if [ "$bug" -gt "0" ]; then
   echo "PR not generated: using gitolite url, not public one!"
