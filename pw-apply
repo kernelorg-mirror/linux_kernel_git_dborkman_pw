@@ -38,11 +38,24 @@ accept_series()
   exit
 }
 
+cover_from_url()
+{
+  curl -s $1 | gunzip -f -c > tmp.i
+  series_num=`grep "href=\"/series" tmp.i|cut -d/ -f3|head -1`
+  cover_num=`grep "href=\"/cover" tmp.i|cut -d/ -f3|head -1`
+  if [ ! -z "$cover_num" ]; then
+    curl -s https://patchwork.kernel.org/cover/$cover_num/mbox/ | gunzip -f -c > cover.i
+    merge="1"
+  fi
+  curl -s https://patchwork.kernel.org/series/$series_num/mbox/ | gunzip -f -c > mbox.i
+}
+
 branch="mbox"
 series=""
 accept=""
 merge=""
 mbox=""
+cover=""
 head_old=$(git rev-parse --verify HEAD)
 while true; do
   case "$1" in
@@ -50,36 +63,42 @@ while true; do
     -a | --accept ) accept="1"; shift ;;
     -m | --merge ) merge="1"; branch="$2"; shift 2 ;;
     -b | --mbox ) mbox="$2"; shift 2 ;;
+    -c | --cover) branch="tmp"; cover="$2"; shift 2 ;;
     -h | --help ) usage; break ;;
     -- ) shift; break ;;
     * )  break ;;
   esac
 done
 [ ! -z "$mbox" ]   && [ ! -z "$series" ] && usage
-[   -z "$mbox" ]   && [   -z "$series" ] && usage
+[   -z "$mbox" ]   && [   -z "$series" ] && [ -z "$cover" ] && usage
 [ ! -z "$accept" ] && [ ! -z "$mbox" ]   && usage
 [ ! -z "$series" ] && mbox_from_series $series
 [ ! -z "$mbox" ]   && mbox_from_url $mbox
 [ ! -z "$accept" ] && accept_series $series
+[ ! -z "$cover" ]  && cover_from_url $cover
 git checkout -b $branch
 mb2q --mboxout mbox.o "$@" mbox.i
 git am -3 mbox.o
 git checkout master
 if [ ! -z "$merge" ]; then
   git merge --stat --log --no-edit --no-ff $branch
+  author=`grep 'X-Patchwork-Submitter:' cover.i|cut -f2,3 -d' '`
+  branch_name=`grep 'Subject:' cover.i|cut -d']' -f2|cut -d' ' -f2-10`
+  text=`grep -A300 'X-Mailing-List:' cover.i |tail --lines=+3|grep -B300 "$author"|head --lines=-2`
   git commit --amend --signoff -F- <<EOF
-Merge branch '$branch'
+Merge branch '$branch_name'
 
-XYZ says:
+$author says:
 
 ====================
+$text
 ====================
 EOF
 else
   git merge --stat --ff $branch
 fi
 git branch -d $branch
-rm -f mbox.i mbox.o
+rm -f mbox.i mbox.o tmp.i cover.i
 head_new=$(git rev-parse --verify HEAD)
 pw-check -s $head_old -e $head_new
 if [ ! -z "$merge" ]; then
