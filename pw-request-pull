@@ -6,7 +6,7 @@
 usage()
 {
   cat <<-EOF
-  usage: pw-pull [-h] [-t TREE] [-s SINCE_COMMIT]
+  usage: pw-request-pull [-h] [-t TREE] [-s SINCE_COMMIT]
 EOF
   exit
 }

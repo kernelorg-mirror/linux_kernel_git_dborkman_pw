@@ -70,9 +70,10 @@ for letting it run in the background automatically.
 Patch handling:
 ---------------
 
-Main tools are pw-apply and pw-pull, both minimal, quick and dirty scripts
-to get the job done. pw-check is called from pw-apply. pw-backport for the
-backports to the stable tree. Patches for improving them are very welcome.
+Main tools are pw-apply and pw-request-pull, both minimal, quick and dirty
+scripts to get the job done. pw-check is called from pw-apply. pw-backport
+for the backports to the stable tree. Patches for improving them are very
+welcome.
 
 1. Initial patch triage:
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,17 +164,17 @@ preference is to explicitly state it here as both {bpf,bpf-next} trees don't
 have too many commits piling up. Again, this workflow is mostly bpf specific
 and the scripts would need to be adapted for other subsystems.
 
-  $ pw-pull -t bpf -s aef70a1f44c0b570e6345c02c2d240471859f0a4
+  $ pw-request-pull -t bpf -s aef70a1f44c0b570e6345c02c2d240471859f0a4
   PR: pr-bpf-2019-09-26.patch
 
 Currently the -t option only accepts: bpf, bpf-next
 
-The -s option is optional and if not specified then pw-pull will determine
-the merge base automatically. In order for this to work, it requires that
-there is a net (for -t bpf) or net-next (for -t bpf-next) remote in the
+The -s option is optional and if not specified then pw-request-pull will
+determine the merge base automatically. In order for this to work, it requires
+that there is a net (for -t bpf) or net-next (for -t bpf-next) remote in the
 repository. To generate the PR, simply do:
 
-  $ pw-pull -t bpf
+  $ pw-request-pull -t bpf
   PR: pr-bpf-2019-09-26.patch
 
 The resulting file is then edited to describe the changes that the pull-request
