@@ -200,3 +200,38 @@ In the local git clone, the following workflow can be used:
   Applying: d895a0f16fad bpf: fix accessing bpf_sysctl.file_pos on s390
 
 The pw-backport can also take multiple shas as command line arguments.
+
+Other workflow examples
+-----------------------
+
+Jakub:
+~~~~~~
+
+mb2q reshuffles tags so I disable it. I always apply patches based
+on series with "auto-merge" and edit on:
+
+  $ pw-apply -e -N -M -s 211734
+
+If series doesn't have a cover letter patches just get applied.
+If there is a merge it will do an automatic git rebase -i and wait for the
+rebase to finish. This lets me edit the commits without dealing with
+the --rebase-merges magic. It will also automatically git commit --amend
+the merge commit, because there are usually things that need to be removed
+from the text, like "Hi!", signatures, etc.
+
+pw-pull works great for pulling, again using patchwork ID, but of the
+particular PR "patch", PRs don't have series IDs:
+
+  $ pw-pull -p 1393469
+
+When author posted the patches alongside the PR (and patchwork grouped them
+correctly which doesn't always happen, sigh) the script can apply
+those patches to a 'tmp' branch and check the contents match:
+
+  $ pw-pull -p 1393469 -s 12345
+
+I don't mark as applied from the command line (yet) because I double
+check the tests passed in the UI, anyway.
+
+TODO: since I don't use mb2q I have to manually trim CCs and propagate
+tags sent to the cover letter.
