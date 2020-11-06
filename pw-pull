@@ -1,0 +1,122 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
+#
+# Copyright (C) 2019 Daniel Borkmann <daniel@iogearbox.net>
+# Copyright (C) 2020 Jakub Kicinski <kuba@kernel.org>
+
+# Pull from a pull request in patchwork, add a commit message
+# based on the contents of the tag or the email if tag was empty.
+# Optionally, compare if the patches on the branch are identical
+# to what's posted on the mailing list.
+
+usage()
+{
+  cat <<-EOF
+  usage: pw-pull [-p PULL] [-s SERIES] [-h]
+EOF
+  exit
+}
+
+mbox_from_series()
+{
+  git pw series show $1 -f simple 2> /dev/null | \
+    sed ''/Complete/s//$(printf "\033[1mComplete\033[0m")/''
+  git pw series download $1 mbox.i 2> /dev/null
+}
+
+pull=""
+series=""
+series_branch="tmp"
+head_old=$(git rev-parse --verify HEAD)
+while true; do
+  case "$1" in
+    -p | --pull ) pull="$2"; shift 2 ;;
+    -s | --series ) series="$2"; shift 2 ;;
+    -h | --help ) usage; break ;;
+    -- ) shift; break ;;
+    * )  break ;;
+  esac
+done
+[ -z "$pull" ]     && usage
+
+srv=$(git config --get pw.server)
+
+pull_json=$(curl -s $srv/patches/$pull/)
+
+pull_url=$(echo "$pull_json" | jq -r '.pull_url')
+pull_author=$(echo "$pull_json" | jq -r '.submitter.name')
+pull_subject=$(echo "$pull_json" |
+		   jq -r '.name' |
+		   sed -e 's/\[.*\] *//')
+pull_msgid=$(echo "$pull_json" | jq -r '.msgid' | tr -d '<>')
+
+# Download the series from ML and make a local branch
+if [ ! -z "$series" ]; then
+    mbox_from_series $series
+    git checkout -b $series_branch
+    git am mbox.i
+    rm -f mbox.i
+    git checkout master
+fi
+
+git pull --stat --log --no-edit --no-ff $pull_url
+merge_header=$(git show --format="%s" --no-patch)
+merge_body=$(git show --format="%b" --no-patch)
+
+# count lines until "* tag", ignore empty and gpg output
+significant_lines=$(echo -e "$merge_body" |
+			awk 'BEGIN {c=0; e=0}
+			     /^\* (tag|git)/ {e=1}
+			     /^[^#]/ { if(!e) c++}
+			     END {print c}')
+
+if [ "$significant_lines" -le 1 ]; then
+    # Construct the message from email body if tag is empty
+    pull_msg=$(echo "$pull_json" |
+		   jq -r '.content' |
+		   awk 'BEGIN {e=0} /^---/ {e=1} {if(!e) print}')
+
+    git commit --amend --signoff -F- <<EOF
+$merge_header
+
+$pull_author says:
+
+====================
+$pull_subject
+
+$pull_msg
+
+$merge_body
+====================
+
+Link: https://lore.kernel.org/r/$pull_msgid
+EOF
+else
+    # Tag has info in it, just use that
+    git commit --amend --signoff -F- <<EOF
+$merge_header
+
+$pull_author says:
+
+====================
+$merge_body
+====================
+
+Link: https://lore.kernel.org/r/$pull_msgid
+EOF
+fi
+
+if [ ! -z "$series" ]; then
+    if git diff master..$series_branch --exit-code; then
+	echo -e '\e[0;32mSeries matches PR\e[0m'
+    else
+	echo -e '\n\n\e[1;31mSeries differs!!\e[0m\n'
+    fi
+    git branch -D $series_branch
+fi
+
+git commit --amend
+
+# Checks
+head_new=$(git rev-parse --verify HEAD)
+pw-check -s $head_old -e $head_new
