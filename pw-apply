@@ -68,9 +68,9 @@ cover_from_url()
 {
   curl -s $1 | gunzip -f -c > tmp.i
   series_num=`grep "href=\"/series" tmp.i|cut -d/ -f3|head -1`
-  cover_num=`grep "href=\"/cover" tmp.i|cut -d/ -f3|head -1`
-  if [ ! -z "$cover_num" ]; then
-    curl -s https://patchwork.kernel.org/cover/$cover_num/mbox/ | gunzip -f -c > cover.i
+  cover_url=`grep "href=\"/project/netdevbpf/cover" tmp.i|cut -d\" -f2`
+  if [ ! -z "$cover_url" ]; then
+    curl -s https://patchwork.kernel.org${cover_url}mbox/ | gunzip -f -c > cover.i
     merge="1"
   fi
   curl -s https://patchwork.kernel.org/series/$series_num/mbox/ | gunzip -f -c > mbox.i
@@ -159,8 +159,8 @@ if [ ! -z "$merge" ]; then
   git merge --stat --log --no-edit --no-ff $branch
   if [ ! -z "$cover" ]; then
     author=`grep 'X-Patchwork-Submitter:' cover.i|cut -f2,3 -d' '`
-    branch_name=`grep 'Subject:' cover.i|cut -d']' -f2|cut -d' ' -f2-10`
-    text=`grep -A300 'X-Mailing-List:' cover.i |tail --lines=+3|grep -B300 "$author"|head --lines=-2`
+    branch_name=`grep '^Subject:' cover.i|cut -d']' -f2|cut -d' ' -f2-10`
+    text=`grep -A300 'X-Mailing-List:' cover.i |tail --lines=+3|grep -B300 -E "^.*\([0-9]+\):$"|head --lines=-2`
     git commit --amend --signoff -F- <<EOF
 Merge branch '$branch_name'
 
