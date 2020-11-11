@@ -9,19 +9,14 @@
 # Optionally, compare if the patches on the branch are identical
 # to what's posted on the mailing list.
 
+source $(dirname $0)/lib.sh
+
 usage()
 {
   cat <<-EOF
   usage: pw-pull [-p PULL] [-s SERIES] [-h]
 EOF
   exit
-}
-
-mbox_from_series()
-{
-  git pw series show $1 -f simple 2> /dev/null | \
-    sed ''/Complete/s//$(printf "\033[1mComplete\033[0m")/''
-  git pw series download $1 mbox.i 2> /dev/null
 }
 
 pull=""

@@ -100,3 +100,14 @@ pw_series_print_short()
 
   echo
 }
+
+#######################
+
+mbox_from_series()
+{
+  srv=$(git config --get pw.server)
+  series_json=$(curl -s $srv/series/$1/)
+
+  pw_series_print_short "$series_json"
+  pw_series_download_mbox "$series_json" mbox.i
+}
