@@ -74,7 +74,10 @@ if [ "$significant_lines" -le 1 ]; then
     # Construct the message from email body if tag is empty
     pull_msg=$(echo "$pull_json" |
 		   jq -r '.content' |
-		   awk 'BEGIN {e=0} /^---/ {e=1} {if(!e) print}')
+		   awk 'BEGIN {e=0}
+                        /^---/ {e=1}
+                        /^Please consider/ {e=1}
+                        {if(!e) print}')
 
     git commit --amend --signoff -F- <<EOF
 $merge_header
