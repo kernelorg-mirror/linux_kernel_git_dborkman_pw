@@ -3,6 +3,8 @@
 #
 # Copyright (C) 2019 Daniel Borkmann <daniel@iogearbox.net>
 
+source $(dirname $0)/lib.sh
+
 usage()
 {
   cat <<-EOF
@@ -20,15 +22,15 @@ mbox_from_url()
 
 mbox_from_series()
 {
-  git pw series show $1 -f simple 2> /dev/null | \
-    sed ''/Complete/s//$(printf "\033[1mComplete\033[0m")/''
-  git pw series download $1 mbox.i 2> /dev/null
+  srv=$(git config --get pw.server)
+  series_json=$(curl -s $srv/series/$1/)
+
+  pw_series_print_short "$series_json"
+  pw_series_download_mbox "$series_json" mbox.i
 }
 
 get_cover()
 {
-  srv=$(git config --get pw.server)
-  series_json=$(curl -s $srv/series/$1/)
   cover_json=$(echo "$series_json" | jq '.cover_letter')
   link=$(echo "$cover_json" | jq -r '.mbox' )
 
@@ -114,7 +116,7 @@ done
 body=
 author=XYZ
 if [ ! -z "$auto_branch" ]; then
-    get_cover $series
+    get_cover
     [ -z "$cover_msgid" ] && merge=
 fi
 

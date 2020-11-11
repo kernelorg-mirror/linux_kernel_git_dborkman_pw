@@ -1,0 +1,102 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
+#
+# Copyright (C) 2020 Jakub Kicinski <kuba@kernel.org>
+
+bold()
+{
+  echo -n -e "\e[1m$@"
+  [ ! -z "$@" ] && echo -n -e "\e[0m"
+}
+
+normal()
+{
+  echo -n -e "\e[0m$@"
+}
+
+pr_trunc_n()
+{
+  local len=$1
+  local str="$2"
+
+  if [ ${#str} -le $len ]; then
+    echo -n "$str"
+  else
+    echo -n ${str::len - 3}...
+  fi
+}
+
+date_to_age()
+{
+  local past="$1"
+
+  now=$(date +%s)
+  was=$(date -d "$past" +%s)
+
+  hours=$(( (now - was) / (60 * 60) ))
+
+  echo "$((hours / 24))d $((hours % 24))h"
+}
+
+subject_remove_tag()
+{
+  echo "$@" | sed -e 's/\[.*\] *//'
+}
+
+subject_get_tree()
+{
+  tree=$(echo "$@" |
+	   sed -n 's/\[\(.*\)\].*/\1/p' |
+	   tr , '\n' |
+	   sed -n '/[a-z]$/p')
+  echo ${tree:--}
+}
+
+pw_series_download_mbox()
+{
+  local	series_json="$1"
+  local out_file=${2:-mbox}
+
+  mbox_url=$(echo "$series_json" | jq -r '.mbox')
+  curl -s "$mbox_url" > $out_file
+}
+
+pw_series_print_short()
+{
+  local series_json="$1"
+
+  series_subj=$(echo "$series_json" | jq -r '.name')
+  patch_subj=$(echo "$series_json" | jq -r '.patches[0].name')
+  cover_letter=$(echo "$series_json" | jq -r '.cover_letter')
+  cnt=$(echo "$series_json" | jq -r '.patches | length')
+  author=$(echo "$series_json" | jq -r '.submitter.name')
+  ver=$(echo "$series_json" | jq -r '.version')
+  date=$(echo "$series_json" | jq -r '.date')
+
+  date="$date UTC"
+
+  name=$(subject_remove_tag "$series_subj")
+  tree=$(subject_get_tree "$patch_subj")
+  age=$(date_to_age "$date")
+  resend=$(echo "$patch_subj" | sed -n 's/.*resend.*/r/Ip')
+
+  bold "By: $author  Age: $age  Tree: $tree  Version: $ver$resend  Patches: $cnt\n"
+  echo "-----"
+
+  if [ "$cover_letter" != "null" ]; then
+    bold
+    pr_trunc_n 78 "$name"
+    normal "\n"
+  fi
+
+  echo "$series_json" |
+    jq -r '.patches[].name' |
+    while read -r patch_subj; do
+      patch_name=$(subject_remove_tag "$patch_subj")
+      echo -n "  "
+      pr_trunc_n 77 "$patch_name"
+      echo
+    done
+
+  echo
+}
