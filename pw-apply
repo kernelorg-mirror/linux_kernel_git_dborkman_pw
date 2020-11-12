@@ -88,7 +88,7 @@ mb2q_normalize="y"
 head_old=$(git rev-parse --verify HEAD)
 while true; do
   case "$1" in
-    -3 ) am_flags="$am_flags -3" ;;
+    -3 ) am_flags="$am_flags -3"; shift ;;
     -s | --series ) series="$2"; shift 2 ;;
     -a | --accept ) accept="1"; shift ;;
     -e | --do-edits ) edits="1"; shift ;;
