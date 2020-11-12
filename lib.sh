@@ -106,6 +106,8 @@ pw_series_print_short()
 mbox_from_series()
 {
   srv=$(git config --get pw.server)
+  srv=${srv%/} # strip trailing slash
+
   series_json=$(curl -s $srv/series/$1/)
 
   pw_series_print_short "$series_json"
