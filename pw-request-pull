@@ -26,8 +26,8 @@ while true; do
 done
 [ -z "$tree" ]  && usage
 case $tree in
-  bpf-next ) remote=(net-next git://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
-  bpf ) remote=(net git://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
+  bpf-next ) remote=(net-next https://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
+  bpf ) remote=(net https://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
   * ) usage ;;
 esac
 if [ -z "$since" ]; then
