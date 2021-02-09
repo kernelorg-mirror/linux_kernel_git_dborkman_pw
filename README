@@ -225,10 +225,15 @@ particular PR "patch", PRs don't have series IDs:
   $ pw-pull -p 1393469
 
 When author posted the patches alongside the PR (and patchwork grouped them
-correctly which doesn't always happen, sigh) the script can apply
-those patches to a 'tmp' branch and check the contents match:
+correctly which doesn't always happen) the script can apply those patches
+to a 'tmp' branch and check the contents of series and PR match:
 
   $ pw-pull -p 1393469 -s 12345
+
+pw-pull can also pull from PRs which patchwork does not recognize as PRs
+at all, using -c (AKA --pull-from-cover):
+
+  $ pw-pull -s 12345 -c
 
 I don't mark as applied from the command line (yet) because I double
 check the tests passed in the UI, anyway.

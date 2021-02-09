@@ -14,12 +14,13 @@ source $(dirname $0)/lib.sh
 usage()
 {
   cat <<-EOF
-  usage: pw-pull [-p PULL] [-s SERIES] [-h]
+  usage: pw-pull [-p PULL] [-s SERIES] [-c] [-h]
 EOF
   exit
 }
 
 pull=""
+cover=""
 series=""
 series_branch="tmp"
 head_old=$(git rev-parse --verify HEAD)
@@ -27,23 +28,60 @@ while true; do
   case "$1" in
     -p | --pull ) pull="$2"; shift 2 ;;
     -s | --series ) series="$2"; shift 2 ;;
+    -c | --pull-from-cover ) cover="y"; shift ;;
     -h | --help ) usage; break ;;
     -- ) shift; break ;;
     * )  break ;;
   esac
 done
-[ -z "$pull" ]     && usage
+[ -z "$pull" ] && [ -z "$cover" ]     && usage
+[ ! -z "$pull" ] && [ ! -z "$cover" ] && usage
 
 srv=$(git config --get pw.server)
+srv=${srv%/} # strip trailing slash
 
-pull_json=$(curl -s $srv/patches/$pull/)
+if [ ! -z "$pull" ]; then
+  pull_json=$(curl -s $srv/patches/$pull/)
 
-pull_url=$(echo "$pull_json" | jq -r '.pull_url')
-pull_author=$(echo "$pull_json" | jq -r '.submitter.name')
-pull_subject=$(echo "$pull_json" |
+  pull_url=$(echo "$pull_json" | jq -r '.pull_url')
+  pull_author=$(echo "$pull_json" | jq -r '.submitter.name')
+  pull_subject=$(echo "$pull_json" |
 		   jq -r '.name' |
 		   sed -e 's/\[.*\] *//')
-pull_msgid=$(echo "$pull_json" | jq -r '.msgid' | tr -d '<>')
+  pull_msgid=$(echo "$pull_json" | jq -r '.msgid' | tr -d '<>')
+  json=$pull_json
+elif [ ! -z "$cover" ]; then
+  series_json=$(curl -s $srv/series/$series/)
+
+  pull_author=$(echo "$series_json" | jq -r '.submitter.name')
+  pull_subject=$(echo "$series_json" |
+		   jq -r '.name' |
+		   sed -e 's/\[.*\] *//')
+  pull_msgid=$(echo "$series_json" | jq -r '.cover_letter.msgid' | tr -d '<>')
+
+  cover_id=$(echo "$series_json" | jq -r '.cover_letter.id')
+  cover_json=$(curl -s $srv/covers/$cover_id/)
+
+  pull_msg=$(echo "$pull" |
+		   jq -r '.content' |
+		   awk 'BEGIN {e=0}
+                        /^---/ {e=1}
+                        /^Please consider/ {e=1}
+                        {if(!e) print}')
+
+  pull_url=$(echo "$cover_json" |
+	       jq -r '.content' |
+	       awk '/^.+$/                      { if (n) {n=0; print} }
+	            /and are available in the git repository at:/ {n=1}')
+  pull_url=$(echo $pull_url)
+
+  if [ -z "$pull_url" ]; then
+    echo "Unable to parse out pull URL"
+    exit 1
+  fi
+
+  json=$cover_json
+fi
 
 # Download the series from ML and make a local branch
 if [ ! -z "$series" ]; then
@@ -61,16 +99,17 @@ merge_body=$(git show --format="%b" --no-patch)
 # count lines until "* tag", ignore empty and gpg output
 significant_lines=$(echo -e "$merge_body" |
 			awk 'BEGIN {c=0; e=0}
-			     /^\* (tag|git)/ {e=1}
+			     /^\* (tag|git|'"'"')/ {e=1}
 			     /^[^#]/ { if(!e) c++}
 			     END {print c}')
 
 if [ "$significant_lines" -le 1 ]; then
     # Construct the message from email body if tag is empty
-    pull_msg=$(echo "$pull_json" |
+    pull_msg=$(echo "$json" |
 		   jq -r '.content' |
 		   awk 'BEGIN {e=0}
                         /^---/ {e=1}
+                        /^The following changes since commit/ {e=1}
                         /^Please consider/ {e=1}
                         {if(!e) print}')
 
