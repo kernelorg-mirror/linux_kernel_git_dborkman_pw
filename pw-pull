@@ -115,7 +115,9 @@ if [ "$significant_lines" -le 1 ]; then
 		   awk 'BEGIN {e=0}
                         /^---/ {e=1}
                         /^The following changes since commit/ {e=1}
+                        /^The following are changes since commit/ {e=1}
                         /^Please consider/ {e=1}
+                        /^Please, pull these changes/ {e=1}
                         {if(!e) print}')
 
     git commit --amend --signoff -F- <<EOF
