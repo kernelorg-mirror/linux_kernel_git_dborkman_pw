@@ -92,7 +92,7 @@ fi
 if [ ! -z "$series" ]; then
     mbox_from_series $series
     git checkout -b $series_branch
-    git am mbox.i
+    git am -3 mbox.i
     rm -f mbox.i
     git checkout master
 fi
