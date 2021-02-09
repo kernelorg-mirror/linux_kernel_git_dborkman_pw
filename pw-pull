@@ -14,12 +14,13 @@ source $(dirname $0)/lib.sh
 usage()
 {
   cat <<-EOF
-  usage: pw-pull [-p PULL] [-s SERIES] [-c] [-h]
+  usage: pw-pull [-p PULL] [-s SERIES] [-c] [-P PULL_URL] [-h]
 EOF
   exit
 }
 
 pull=""
+pull_url=""
 cover=""
 series=""
 series_branch="tmp"
@@ -29,13 +30,15 @@ while true; do
     -p | --pull ) pull="$2"; shift 2 ;;
     -s | --series ) series="$2"; shift 2 ;;
     -c | --pull-from-cover ) cover="y"; shift ;;
+    -P | --pull-url ) pull_url="$2"; shift 2 ;;
     -h | --help ) usage; break ;;
     -- ) shift; break ;;
     * )  break ;;
   esac
 done
-[ -z "$pull" ] && [ -z "$cover" ]     && usage
-[ ! -z "$pull" ] && [ ! -z "$cover" ] && usage
+[ -z "$pull" ] && [ -z "$cover" ]        && usage
+[ ! -z "$pull" ] && [ ! -z "$cover" ]    && usage
+[ ! -z "$pull" ] && [ ! -z "$pull_url" ] && usage
 
 srv=$(git config --get pw.server)
 srv=${srv%/} # strip trailing slash
@@ -69,11 +72,13 @@ elif [ ! -z "$cover" ]; then
                         /^Please consider/ {e=1}
                         {if(!e) print}')
 
-  pull_url=$(echo "$cover_json" |
-	       jq -r '.content' |
-	       awk '/^.+$/                      { if (n) {n=0; print} }
-	            /and are available in the git repository at:/ {n=1}')
-  pull_url=$(echo $pull_url)
+  if [ -z "$pull_url" ]; then
+    pull_url=$(echo "$cover_json" |
+		 jq -r '.content' |
+		 awk '/^.+$/                      { if (n) {n=0; print} }
+		      /and are available in the git repository at:/ {n=1}')
+    pull_url=$(echo $pull_url)
+  fi
 
   if [ -z "$pull_url" ]; then
     echo "Unable to parse out pull URL"

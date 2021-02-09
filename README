@@ -235,6 +235,9 @@ at all, using -c (AKA --pull-from-cover):
 
   $ pw-pull -s 12345 -c
 
+Last but not least it can pull from an explicit URL with -P which can be
+useful as well (it will at least provide the merge commit template).
+
 I don't mark as applied from the command line (yet) because I double
 check the tests passed in the UI, anyway.
 
