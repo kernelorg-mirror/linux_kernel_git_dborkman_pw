@@ -104,7 +104,7 @@ merge_body=$(git show --format="%b" --no-patch)
 # count lines until "* tag", ignore empty and gpg output
 significant_lines=$(echo -e "$merge_body" |
 			awk 'BEGIN {c=0; e=0}
-			     /^\* (tag|git|'"'"')/ {e=1}
+			     /^\* (tag|git|https|'"'"')/ {e=1}
 			     /^[^#]/ { if(!e) c++}
 			     END {print c}')
 
