@@ -241,5 +241,36 @@ useful as well (it will at least provide the merge commit template).
 I don't mark as applied from the command line (yet) because I double
 check the tests passed in the UI, anyway.
 
-TODO: since I don't use mb2q I have to manually trim CCs and propagate
-tags sent to the cover letter.
+I use this rather ugly script in applypatch-msg to strip CCs and
+semi-manually propagate tags from the cover letter:
+
+  perl -pi -e 's|^Message-Id:\s*<?([^>]+)>?$|Link: https://lore.kernel.org/r/$1|g;' "$1"
+
+  # drop the pointless CCs from the commit message
+  tag_names_emails=$(echo "@vger.kernel.org";
+		   echo "jakub kicinski";
+		   echo "davemloft.net";
+		   cat "$1" |
+		       sed -n 's/^[ARST][A-Za-z-]*: \(.* <\).*/\1/p';
+		   cat "$1" |
+		       sed -n 's/^[ARST][A-Za-z-]*:.*\(<.*>\)/\1/p')
+
+  while IFS= read -r ident; do
+    ccs=`sed -n "/cc:.*$ident.*/Ip" "$1"`
+    [ ! -z "$ccs" ] && echo -e Remove tag: '\e[36m'$ccs'\e[0m'
+    sed -i "/cc:.*$ident.*/Id" "$1"
+  done <<< "$tag_names_emails"
+
+  while IFS= read -r tag; do
+    echo -e Adding tag: '\e[35m'$tag'\e[0m'
+      git interpret-trailers --in-place \
+          --if-exists=addIfDifferent \
+          --trailer "$tag" \
+          "$1"
+  done <<< "$ADD_TAGS"
+
+  # Move my tag last (and remove duplicates)
+  git interpret-trailers --in-place \
+    --if-exists=replace \
+    --trailer "Signed-off-by: Jakub Kicinski <kuba@kernel.org>" \
+    "$1"
