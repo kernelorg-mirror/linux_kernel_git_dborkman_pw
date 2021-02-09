@@ -3,6 +3,12 @@
 #
 # Copyright (C) 2020 Jakub Kicinski <kuba@kernel.org>
 
+red()
+{
+  echo -n -e "\e[1;31m$@"
+  [ ! -z "$@" ] && echo -n -e "\e[0m"
+}
+
 bold()
 {
   echo -n -e "\e[1m$@"
@@ -71,6 +77,7 @@ pw_series_print_short()
   cnt=$(echo "$series_json" | jq -r '.patches | length')
   author=$(echo "$series_json" | jq -r '.submitter.name')
   ver=$(echo "$series_json" | jq -r '.version')
+  complete=$(echo "$series_json" | jq -r '.received_all')
   date=$(echo "$series_json" | jq -r '.date')
 
   date="$date UTC"
@@ -81,6 +88,12 @@ pw_series_print_short()
   resend=$(echo "$patch_subj" | sed -n 's/.*resend.*/r/Ip')
 
   bold "By: $author  Age: $age  Tree: $tree  Version: $ver$resend  Patches: $cnt\n"
+  if [ "$complete" != true ]; then
+      red
+      bold
+      echo "WARNING: Series is not complete"
+      normal
+  fi
   echo "-----"
 
   if [ "$cover_letter" != "null" ]; then
