@@ -94,6 +94,15 @@ pw_series_print_short()
       echo "WARNING: Series is not complete"
       normal
   fi
+  dwd=$(basename $PWD)
+  if [[ "$tree" =~ ^(net|bpf)(-next)?$ &&
+        "$dwd"  =~ ^(net|bpf)(-next)?$ &&
+        "$tree" != "$dwd" ]]; then
+      red
+      bold
+      echo "WARNING: Applying to the wrong tree?"
+      normal
+  fi
   echo "-----"
 
   if [ "$cover_letter" != "null" ]; then
