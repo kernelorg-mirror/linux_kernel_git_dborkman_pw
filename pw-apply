@@ -220,3 +220,4 @@ if [ ! -z "$merge" ]; then
 fi
 
 clear_cover_tags
+exit 0
