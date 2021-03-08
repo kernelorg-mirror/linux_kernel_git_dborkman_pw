@@ -182,7 +182,8 @@ if [ ! -z "$merge" ]; then
 	    # strip away "=?utf-8?b?" prefix and "?=" suffix and base64-decode
 	    author=$(echo "${BASH_REMATCH[1]}" | base64 -d)
     fi
-    branch_name=`grep '^Subject:' cover.i|cut -d']' -f2|cut -d' ' -f2-10`
+    # Extract cover letter subject, potentially split into two lines
+    branch_name=$(grep -Pzo '(?<=^Subject: ).*?\n?.*?(?=\n\w+: )' cover.i | tr -d '\n' | cut -d']' -f2 | cut -c 2-)
     text=`grep -A300 'X-Mailing-List:' cover.i |tail --lines=+3|grep -B300 -E "^.*\([0-9]+\):$"|head --lines=-2`
     git commit --amend --signoff -F- <<EOF
 Merge branch '$branch_name'
