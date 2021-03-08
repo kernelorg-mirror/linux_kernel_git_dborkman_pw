@@ -178,6 +178,10 @@ if [ ! -z "$merge" ]; then
   git merge --stat --log --no-edit --no-ff $branch
   if [ ! -z "$cover" ]; then
     author=`grep 'X-Patchwork-Submitter:' cover.i|cut -f2,3 -d' '`
+    if [[ "$author" =~ ^=\?utf-8\?b\?(.*)\?=$ ]]; then
+	    # strip away "=?utf-8?b?" prefix and "?=" suffix and base64-decode
+	    author=$(echo "${BASH_REMATCH[1]}" | base64 -d)
+    fi
     branch_name=`grep '^Subject:' cover.i|cut -d']' -f2|cut -d' ' -f2-10`
     text=`grep -A300 'X-Mailing-List:' cover.i |tail --lines=+3|grep -B300 -E "^.*\([0-9]+\):$"|head --lines=-2`
     git commit --amend --signoff -F- <<EOF
