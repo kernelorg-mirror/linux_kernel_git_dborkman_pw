@@ -177,10 +177,13 @@ git checkout master
 if [ ! -z "$merge" ]; then
   git merge --stat --log --no-edit --no-ff $branch
   if [ ! -z "$cover" ]; then
-    author=`grep 'X-Patchwork-Submitter:' cover.i|cut -f2,3 -d' '`
+    author=$(grep 'X-Patchwork-Submitter:' cover.i | cut -d' ' -f2- | cut -d'<' -f1 | awk '{$1=$1;print}')
     if [[ "$author" =~ ^=\?utf-8\?b\?(.*)\?=$ ]]; then
 	    # strip away "=?utf-8?b?" prefix and "?=" suffix and base64-decode
 	    author=$(echo "${BASH_REMATCH[1]}" | base64 -d)
+    elif [[ "$author" =~ ^=\?utf-8\?q\?(.*)\?=$ ]]; then
+	    # strip away "=?utf-8?q?" prefix and "?=" suffix and quoted-printable-decode
+	    author=$(echo "${BASH_REMATCH[1]}" | tr '_' ' ' | perl -MMIME::QuotedPrint -0777 -nle 'print decode_qp($_)')
     fi
     # Extract cover letter subject, potentially split into two lines
     branch_name=$(awk '/^\w+: / { subj=0 } /^Subject: / { subj = 1 } subj { print $0 }' cover.i | tr -d '\n' | cut -d']' -f2 | cut -c 2-)
