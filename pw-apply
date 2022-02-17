@@ -144,7 +144,7 @@ if [ ! -z "$auto_branch" -a ! -z "$cover_msgid" ]; then
                 //                            {if (!h && !t) print}
                 /^$/                          {h=0} ')
   author=$(cat cover.i |
-             sed -n 's/^From: \([A-Za-z. -]*[a-z]\).*$/\1/p' |
+             sed -n 's/^From: ['"'"'"]\?\([A-Za-z. -]*[a-z]\).*$/\1/p' |
              tail -1)
 fi
 
