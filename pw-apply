@@ -39,6 +39,7 @@ get_cover()
              tr '[:upper:]' '[:lower:]' |
              tr -d '\n' |
              tr -cs '[:alnum:]_-' '-')
+  [ -n "$branch" -a ${branch:0:1} == '-' ] && branch=${branch:1}
   [ -n "$branch" -a ${branch: -1} == '-' ] && branch=${branch:: -1}
   cover_msgid=$(echo "$cover_json" | jq -r '.msgid' | tr -d '<>')
 }
