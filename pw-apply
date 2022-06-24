@@ -38,9 +38,8 @@ get_cover()
              sed -e 's/ *\[.*\] *//g' |
              tr '[:upper:]' '[:lower:]' |
              tr -d '\n' |
-             tr -cs '[:alnum:]_-' '-')
-  [ -n "$branch" -a ${branch:0:1} == '-' ] && branch=${branch:1}
-  [ -n "$branch" -a ${branch: -1} == '-' ] && branch=${branch:: -1}
+             tr -cs '[:alnum:]_-' '-' |
+             sed -e 's/^-*\(.*[^-]\)-*$/\1/g')
   cover_msgid=$(echo "$cover_json" | jq -r '.msgid' | tr -d '<>')
 }
 
