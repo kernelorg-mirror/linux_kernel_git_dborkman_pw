@@ -98,6 +98,13 @@ if [ ! -z "$series" ]; then
 fi
 
 git pull --stat --log --no-edit --no-ff $pull_url
+if [ $? -ne 0 ]; then
+    bold "Waiting for conflict resolution..."
+    while git status | head -5 | grep "conflicts" >/dev/null; do
+	sleep 0.25
+    done
+fi
+
 merge_header=$(git show --format="%s" --no-patch)
 merge_body=$(git show --format="%b" --no-patch)
 
