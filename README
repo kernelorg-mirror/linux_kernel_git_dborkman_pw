@@ -201,6 +201,63 @@ In the local git clone, the following workflow can be used:
 
 The pw-backport can also take multiple shas as command line arguments.
 
+5. Creating review schedule:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The pw-schedule tool creates a csv schedule which can then be imported into
+the BPF review calendar. By default, the tool creates a schedule for two full
+rotations:
+
+  $ pw-schedule
+  $ cat schedule.csv
+  Subject,Start Date,End Date
+  BPF Reviewer: Daniel,06/27/2022,06/30/2022
+  BPF Reviewer: Alexei,06/30/2022,07/02/2022
+  BPF Reviewer: Martin,07/04/2022,07/07/2022
+  BPF Reviewer: Song,07/07/2022,07/09/2022
+  BPF Reviewer: Jiri,07/11/2022,07/14/2022
+  BPF Reviewer: Yonghong,07/14/2022,07/16/2022
+  BPF Reviewer: Hao,07/18/2022,07/21/2022
+  BPF Reviewer: KP,07/21/2022,07/23/2022
+  BPF Reviewer: John,07/25/2022,07/28/2022
+  BPF Reviewer: Stanislav,07/28/2022,07/30/2022
+  BPF Reviewer: Andrii,08/01/2022,08/04/2022
+  BPF Reviewer: Daniel,08/04/2022,08/06/2022
+  BPF Reviewer: Alexei,08/08/2022,08/11/2022
+  BPF Reviewer: Martin,08/11/2022,08/13/2022
+  BPF Reviewer: Song,08/15/2022,08/18/2022
+  BPF Reviewer: Jiri,08/18/2022,08/20/2022
+  BPF Reviewer: Yonghong,08/22/2022,08/25/2022
+  BPF Reviewer: Hao,08/25/2022,08/27/2022
+  BPF Reviewer: KP,08/29/2022,09/01/2022
+  BPF Reviewer: John,09/01/2022,09/03/2022
+  BPF Reviewer: Stanislav,09/05/2022,09/08/2022
+  BPF Reviewer: Andrii,09/08/2022,09/10/2022
+  $
+
+The csv can be imported into the following way: In Google Calendar
+click on 'Add other calendars' under the left 'Other calendars'
+menu. Then, click on 'Import'. Select the schedule.csv and select
+'BPF upstream' for 'Add to calendar'. Click 'Import' and that's it.
+
+Creating a schedule starting from a specific date works as follows:
+
+  $ pw-schedule -n 11 -s $(date --date="08/04/2022" '+%m/%d/%Y')
+  $ cat schedule.csv
+  Subject,Start Date,End Date
+  BPF Reviewer: Hao,08/04/2022,08/06/2022
+  BPF Reviewer: Martin,08/08/2022,08/11/2022
+  BPF Reviewer: Song,08/11/2022,08/13/2022
+  BPF Reviewer: Andrii,08/15/2022,08/18/2022
+  BPF Reviewer: Jiri,08/18/2022,08/20/2022
+  BPF Reviewer: Daniel,08/22/2022,08/25/2022
+  BPF Reviewer: John,08/25/2022,08/27/2022
+  BPF Reviewer: KP,08/29/2022,09/01/2022
+  BPF Reviewer: Yonghong,09/01/2022,09/03/2022
+  BPF Reviewer: Alexei,09/05/2022,09/08/2022
+  BPF Reviewer: Stanislav,09/08/2022,09/10/2022
+  $
+
 Other workflow examples
 -----------------------
 
