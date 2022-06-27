@@ -1,0 +1,80 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
+#
+# Schedule hack for kernel review rotation, dumped as .csv file which can
+# then be imported into Google calendar or elsewhere.
+#
+# Copyright (C) 2022 Daniel Borkmann <daniel@iogearbox.net>
+
+source $(dirname $0)/lib.sh
+
+reviewer=( Alexei Daniel Andrii Martin Song Yonghong John KP Stanislav Hao Jiri )
+out="schedule.csv"
+rstart=$(date)
+weeks=$(expr 2 '*' ${#reviewer[@]})
+
+usage()
+{
+  tmp=$(date --date "$rstart" '+%m/%d/%Y')
+  cat <<-EOF
+  usage: pw-schedule [-h] [-o FILE] [-s START_DATE] [-n WEEKS]
+
+  defaults:
+    FILE       := $out
+    START_DATE := $tmp
+    WEEKS      := $weeks
+EOF
+  exit
+}
+
+shuffle()
+{
+  RANDOM=$$
+  declare -a array=($@)
+  declare -i k n=${#array[@]}
+  while [ $n -ge 0 ]
+  do
+    let "k = RANDOM % (n + 1)"
+    reviewer_sch+=(${array[$k]})
+    array[k]=${array[$n]}
+    array[n]=$reviewer_sch
+    let "n--"
+  done
+}
+
+schedule_dump_cover()
+{
+  echo "Subject,Start Date,End Date" >> $out
+}
+
+while true; do
+  case "$1" in
+    -o | --output ) out="$2"; shift 2 ;;
+    -n | --weeks ) weeks="$2"; shift 2 ;;
+    -s | --start ) rstart="$2"; shift 2 ;;
+    -h | --help ) usage; break ;;
+    -- ) shift; break ;;
+    * )  break ;;
+  esac
+done
+rm $out 2> /dev/null
+shuffle ${reviewer[@]}
+schedule_dump_cover
+for i in $(seq 0 1 $(expr $weeks - 1))
+do
+  dev=${reviewer_sch[ $i % ${#reviewer[@]} ]}
+  day=$(date --date "$rstart" '+%A')
+  stride=2
+  if [ "$day" = "Monday" ]; then
+    stride=3
+  fi
+  rend=$(date --date "$rstart +$stride days")
+  rs=$(date --date "$rstart" '+%m/%d/%Y')
+  re=$(date --date "$rend" '+%m/%d/%Y')
+  echo "BPF Reviewer: $dev,$rs,$re" >> $out
+  if [ $stride -eq 2 ]; then
+    rend=$(date --date "$rend +$stride days")
+  fi
+  rstart=$rend
+done
+exit 0
