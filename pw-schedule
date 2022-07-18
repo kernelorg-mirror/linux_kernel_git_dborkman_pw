@@ -62,9 +62,9 @@ schedule_dump_cover
 for i in $(seq 0 1 $(expr $weeks - 1))
 do
   dev=${reviewer_sch[ $i % ${#reviewer[@]} ]}
-  day=$(date --date "$rstart" '+%A')
+  day=$(date --date "$rstart" '+%w')
   stride=2
-  if [ "$day" = "Monday" ]; then
+  if [ "$day" = "1" ]; then # day 1 is Monday
     stride=3
   fi
   rend=$(date --date "$rstart +$stride days" '+%m/%d/%Y')
