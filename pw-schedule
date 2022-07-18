@@ -10,7 +10,7 @@ source $(dirname $0)/lib.sh
 
 reviewer=( Alexei Daniel Andrii Martin Song Yonghong John KP Stanislav Hao Jiri )
 out="schedule.csv"
-rstart=$(date '+%m/%d/%Y')
+rstart=$(date --iso-8601)
 weeks=$(expr 2 '*' ${#reviewer[@]})
 
 usage()
@@ -67,12 +67,12 @@ do
   if [ "$day" = "1" ]; then # day 1 is Monday
     stride=3
   fi
-  rend=$(date --date "$rstart +$stride days" '+%m/%d/%Y')
-  rs=$(date --date "$rstart" '+%m/%d/%Y')
-  re=$(date --date "$rend" '+%m/%d/%Y')
+  rend=$(date --iso-8601 --date "$rstart +$stride days")
+  rs=$(date --iso-8601 --date "$rstart")
+  re=$(date --iso-8601 --date "$rend")
   echo "BPF Reviewer: $dev,$rs,$re" >> $out
   if [ $stride -eq 2 ]; then
-    rend=$(date --date "$rend +$stride days" '+%m/%d/%Y')
+    rend=$(date --iso-8601 --date "$rend +$stride days")
   fi
   rstart=$rend
 done
