@@ -129,6 +129,8 @@ done
 [ ! -z "$accept" ] && accept_series $series
 [ ! -z "$cover" ]  && cover_from_url $cover
 
+target=$(git branch --show-current)
+
 body=
 author=XYZ
 if [ ! -z "$auto_branch" ]; then
@@ -165,7 +167,7 @@ if [ -z "$merge" ]; then
 else
   git am $am_flags mbox.o
   if [ ! -z "$edits" ] ; then
-    git rebase -i master
+    git rebase -i "$target"
   fi
   while [ -d .git/rebase-merge ]; do
     echo -ne "\rWaiting for rebase to finish $(date)"
@@ -173,7 +175,7 @@ else
   done
   echo
 fi
-git checkout master
+git checkout "$target"
 if [ ! -z "$merge" ]; then
   git merge --stat --log --no-edit --no-ff $branch
   if [ ! -z "$cover" ]; then

@@ -43,6 +43,8 @@ done
 srv=$(git config --get pw.server)
 srv=${srv%/} # strip trailing slash
 
+target=$(git branch --show-current)
+
 if [ ! -z "$pull" ]; then
   pull_json=$(curl -s $srv/patches/$pull/)
 
@@ -94,7 +96,7 @@ if [ ! -z "$series" ]; then
     git checkout -b $series_branch
     git am -3 mbox.i
     rm -f mbox.i
-    git checkout master
+    git checkout "$target"
 fi
 
 git pull --stat --log --no-edit --no-ff $pull_url
@@ -158,7 +160,7 @@ EOF
 fi
 
 if [ ! -z "$series" ]; then
-    if git diff master..$series_branch --exit-code; then
+    if git diff "$target"..$series_branch --exit-code; then
 	echo -e '\e[0;32mSeries matches PR\e[0m'
     else
 	echo -e '\n\n\e[1;31mSeries differs!!\e[0m\n'
