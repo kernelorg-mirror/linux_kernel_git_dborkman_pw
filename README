@@ -258,6 +258,89 @@ Creating a schedule starting from a specific date works as follows:
   BPF Reviewer: Stanislav,2022-09-08,2022-09-10
   $
 
+6. Signing Tags for PRs:
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+GPG base setup:
+
+  $ gpg --full-generate-key
+  $ gpg --list-keys
+  [...]
+  pub   rsa4096 2022-10-07 [SC] [expires: 2026-10-06]
+        21BB8B2D82228D9CC0049A193AC5D24571557BB1
+  uid           [ultimate] Foo Bar <foo@bar.com>
+  sub   rsa4096 2022-10-07 [E] [expires: 2026-10-06]
+  [...]
+
+  $ gpg --quick-addkey 21BB8B2D82228D9CC0049A193AC5D24571557BB1 ed25519 sign
+  $ gpg --list-keys
+  [...]
+  pub   rsa4096 2022-10-07 [SC] [expires: 2026-10-06]
+        21BB8B2D82228D9CC0049A193AC5D24571557BB1
+  uid           [ultimate] Foo Bar <foo@bar.com>
+  sub   rsa4096 2022-10-07 [E] [expires: 2026-10-06]
+  sub   ed25519 2022-10-07 [S]
+  [...]
+
+  $ gpg --keyserver pgp.surfnet.nl --send-keys 21BB8B2D82228D9CC0049A193AC5D24571557BB1
+  $ gpg --keyserver pgp.mit.edu --send-keys 21BB8B2D82228D9CC0049A193AC5D24571557BB1
+
+  https://www.kernel.org/doc/html/latest/process/maintainer-pgp-guide.html#back-up-your-master-key-for-disaster-recovery
+
+GPG signing, etc:
+
+  Bob's key being AABB8B2D82228D9CC0049A193AC5D24571557BB1
+
+  $ gpg --recv-keys AABB8B2D82228D9CC0049A193AC5D24571557BB1
+  $ gpg --sign-key AABB8B2D82228D9CC0049A193AC5D24571557BB1
+
+  Option A:
+
+  $ gpg -a --export AABB8B2D82228D9CC0049A193AC5D24571557BB1 | 
+    gpg -se -r AABB8B2D82228D9CC0049A193AC5D24571557BB1 > 
+    ~/tmp/AABB8B2D82228D9CC0049A193AC5D24571557BB1.asc.pgp
+
+  [ email AABB8B2D82228D9CC0049A193AC5D24571557BB1.asc.pgp to Bob ]
+
+  Bob:
+
+  $ gpg --decrypt AABB8B2D82228D9CC0049A193AC5D24571557BB1.asc.pgp
+  $ gpg --import AABB8B2D82228D9CC0049A193AC5D24571557BB1.asc
+
+  $ gpg --keyserver pgp.surfnet.nl --send-keys AABB8B2D82228D9CC0049A193AC5D24571557BB1
+  $ gpg --keyserver pgp.mit.edu --send-keys AABB8B2D82228D9CC0049A193AC5D24571557BB1
+
+  Option B (not recommended):
+
+  Alice:
+
+  $ gpg --keyserver pgp.surfnet.nl --send-keys AABB8B2D82228D9CC0049A193AC5D24571557BB1
+  $ gpg --keyserver pgp.mit.edu --send-keys AABB8B2D82228D9CC0049A193AC5D24571557BB1
+
+  Bob can double check Alice's signature on keyservers.
+
+Git base setup:
+
+  $ git config --global gpg.program /usr/bin/gpg
+
+For bpf & bpf-next tree dirs:
+
+  $ git config user.signingkey 21BB8B2D82228D9CC0049A193AC5D24571557BB1
+
+Git signing/pushing/deleting tags for PR:
+
+  $ git tag -s bpf-for-net
+  $ git verify-tag bpf-for-net
+  $ git push origin bpf-for-net
+  # after pull got merged
+  $ git push --delete origin bpf-for-net
+  $ git tag -d bpf-for-net
+
+Links:
+
+  https://www.kernel.org/doc/html/latest/process/maintainer-pgp-guide.html
+  https://gist.github.com/F21/b0e8c62c49dfab267ff1d0c6af39ab84
+
 Other workflow examples
 -----------------------
 
