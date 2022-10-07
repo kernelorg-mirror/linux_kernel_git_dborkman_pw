@@ -329,10 +329,15 @@ For bpf & bpf-next tree dirs:
 
 Git signing/pushing/deleting tags for PR:
 
+  $ pw-request-pull -t bpf-next -S
+
+  Manual steps would look like:
+
   $ git tag -s bpf-for-net
   $ git verify-tag bpf-for-net
   $ git push origin bpf-for-net
   # after pull got merged
+
   $ git push --delete origin bpf-for-net
   $ git tag -d bpf-for-net
 
