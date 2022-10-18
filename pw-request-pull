@@ -46,7 +46,7 @@ count=$(git rev-list --no-merges --count $since...HEAD)
 thanks=$(git log --no-merges $since...HEAD --format="%b" | awk '$1 ~ /Reported-by:|Acked-by:|Reviewed-by:|Tested-by:/' | cut -d ' ' -f2- | cut -d '<' -f1 | awk '{$1=$1};1' | grep -v '@' | sort | uniq | sort -n | sed ':a;N;$!ba;s/\n/, /g' | fold -s -w73)
 file="pr-$tree-$today.patch"
 if [ ! -z "$sign" ]; then
-  git tag -s $sign -m "${remote[0]}-$sign"
+  git tag -s $sign -m "$tree-$sign"
   git verify-tag $sign
   git push origin $sign
 fi
