@@ -180,7 +180,7 @@ repository. To generate the PR, simply do:
 The resulting file is then edited to describe the changes that the pull-request
 contains. It's then sent out same way as other patches through git-send-email:
 
-  $ git send-email --to davem@davemloft.net --cc kuba@kernel.org --cc pabeni@redhat.com --cc edumazet@google.com --cc daniel@iogearbox.net --cc ast@kernel.org --cc andrii@kernel.org --cc netdev@vger.kernel.org --cc bpf@vger.kernel.org pr-bpf-2019-09-26.patch
+  $ git send-email --to davem@davemloft.net --cc kuba@kernel.org --cc pabeni@redhat.com --cc edumazet@google.com --cc daniel@iogearbox.net --cc ast@kernel.org --cc andrii@kernel.org --cc martin.lau@linux.dev --cc netdev@vger.kernel.org --cc bpf@vger.kernel.org pr-bpf-2019-09-26.patch
 
 The PR will then show up the usual way in patchwork and assigned to the higher
 level maintainer delegate for pulling.
