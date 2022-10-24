@@ -6,7 +6,7 @@
 usage()
 {
   cat <<-EOF
-  usage: pw-request-pull [-h] [-t TREE] [-s SINCE_COMMIT] [-S]
+  usage: pw-request-pull [-h] [-t TREE] [-s SINCE_COMMIT] [-S] [-c] [-d]
 EOF
   exit
 }
@@ -15,12 +15,16 @@ remote=""
 since=""
 sign=""
 tree=""
+create=""
+delete=""
 today=$(date +%Y-%m-%d)
 
 while true; do
   case "$1" in
     -s | --since ) since="$2"; shift 2 ;;
     -S | --sign ) sign="for-netdev"; shift ;;
+    -c | --tag-create ) create="true"; shift ;;
+    -d | --tag-delete ) delete="true"; shift ;;
     -t | --tree ) tree="$2"; shift 2 ;;
     -h | --help ) usage; break ;;
     * )  break ;;
@@ -47,9 +51,19 @@ thanks=$(git log --no-merges $since...HEAD --format="%b" | awk '$1 ~ /Reported-b
 file="pr-$tree-$today.patch"
 tag=""
 if [ ! -z "$sign" ]; then
-  git tag -s $sign -m "$tree-$sign"
-  git verify-tag $sign
-  git push origin $sign
+  if [ ! -z "$create" ]; then
+    git tag -s $sign -m "$tree-$sign"
+    git verify-tag $sign
+    git push origin $sign
+    echo "Signed tag $sign pushed to $tree!"
+    exit
+  fi
+  if [ ! -z "$delete" ]; then
+    git push --delete origin $sign
+    git tag -d $sign
+    echo "Signed tag $sign removed from $tree!"
+    exit
+  fi
   tag="tags/$sign"
 fi
 git request-pull $since ${remote[1]} $sign > $file

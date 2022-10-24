@@ -329,7 +329,19 @@ For bpf & bpf-next tree dirs:
 
 Git signing/pushing/deleting tags for PR:
 
-  $ pw-request-pull -t bpf-next -S
+  For BPF trees, it's a 3 step process:
+
+  1) Create and push the signed tag to the tree:
+
+    $ pw-request-pull -t bpf-next -S -c
+
+  2) Create the pull-request template:
+
+    $ pw-request-pull -t bpf-next -S
+
+  3) After merge, remove the signed tag from tree:
+
+    $ pw-request-pull -t bpf-next -S -d
 
   Manual steps would look like:
 
