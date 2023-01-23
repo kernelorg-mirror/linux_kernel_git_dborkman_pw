@@ -8,7 +8,7 @@
 
 source $(dirname $0)/lib.sh
 
-reviewer=( Alexei Daniel Andrii Martin Song Yonghong John KP Stanislav Hao Jiri )
+reviewer=( Alexei Daniel Andrii Martin Song Yonghong John Stanislav Hao Jiri )
 out="schedule.csv"
 rstart=$(date --iso-8601)
 weeks=$(expr 2 '*' ${#reviewer[@]})
