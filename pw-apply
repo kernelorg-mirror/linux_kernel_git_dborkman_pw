@@ -55,7 +55,7 @@ set_cover_tags()
   [ "$link" == "null" ] && return
 
   tags=$(echo -e "$(curl -s $link | jq -r '.[].content')" |
-	     sed -n '/\(Ack\|Review\|Test\)ed-[Bb]y:/p')
+	     sed -n '/^\(Ack\|Review\|Test\)ed-[Bb]y:/p')
   export ADD_TAGS="$tags"
 }
 
