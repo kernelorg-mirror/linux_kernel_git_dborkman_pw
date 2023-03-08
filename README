@@ -331,6 +331,9 @@ Git signing/pushing/deleting tags for PR:
 
   For BPF trees, it's a 3 step process:
 
+  NOTE: you might need to add `GPG_TTY=$(tty)` to below `pw-request-pull`
+  invocations to let gpg ask for your password instead of silently failing.
+
   1) Create and push the signed tag to the tree:
 
     $ pw-request-pull -t bpf-next -S -c
