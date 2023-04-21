@@ -14,14 +14,30 @@ source $(dirname $0)/lib.sh
 usage()
 {
   cat <<-EOF
-  usage: pw-pull [-p PULL] [-s SERIES] [-c] [-P PULL_URL] [-h]
+  usage: pw-pull [-p PULL] [-s SERIES] [-c] [-P PULL_URL] [-T] [-h]
 EOF
   exit
+}
+
+get_cover_tags()
+{
+  [ -z "$cover_tags" ] && return
+
+  # first arg is JSON either of cover or of the pull
+  local json="$1"
+
+  clink=$(echo "$json" | jq -r '.url')
+  link=$(curl -s "$clink" | jq -r '.comments')
+  [ "$link" == "null" ] && return
+
+  echo -ne "$(curl -s $link | jq -r '.[].content')" |
+      sed -n '/^\(Ack\|Review\|Test\)ed-[Bb]y:/p'
 }
 
 pull=""
 pull_url=""
 cover=""
+cover_tags="y"
 series=""
 series_branch="tmp"
 head_old=$(git rev-parse --verify HEAD)
@@ -31,6 +47,7 @@ while true; do
     -s | --series ) series="$2"; shift 2 ;;
     -c | --pull-from-cover ) cover="y"; shift ;;
     -P | --pull-url ) pull_url="$2"; shift 2 ;;
+    -T | --no-cover-tags) cover_tags=""; shift ;;
     -h | --help ) usage; break ;;
     -- ) shift; break ;;
     * )  break ;;
@@ -90,6 +107,7 @@ elif [ ! -z "$cover" ]; then
   json=$cover_json
 fi
 
+tags="$(get_cover_tags "$json")"
 # Download the series from ML and make a local branch
 if [ ! -z "$series" ]; then
     mbox_from_series $series
@@ -142,6 +160,7 @@ $pull_msg
 $merge_body
 ====================
 
+$tags
 Link: https://lore.kernel.org/r/$pull_msgid
 EOF
 else
@@ -155,6 +174,7 @@ $pull_author says:
 $merge_body
 ====================
 
+$tags
 Link: https://lore.kernel.org/r/$pull_msgid
 EOF
 fi
