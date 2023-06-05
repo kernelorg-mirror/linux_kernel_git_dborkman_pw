@@ -9,7 +9,7 @@ usage()
 {
   cat <<-EOF
   usage: pw-apply [-h] [-s SERIES] [-b MBOX] [-P] [-M]
-                  [-a] [-3] [-N] [-e] [-T]
+                  [-a] [-3] [-N] [-e] [-T] [-u BRANCH-BASE]
                   -- [-C] [-a ACKEDBY] [-r REVIEWEDBY] [-t TESTEDBY]
 EOF
   exit
@@ -102,6 +102,7 @@ cover=""
 cover_tags="y"
 mb2q_normalize="y"
 head_old=$(git rev-parse --verify HEAD)
+base=""
 while true; do
   case "$1" in
     -3 ) am_flags="$am_flags -3"; shift ;;
@@ -112,6 +113,7 @@ while true; do
     -P | --no-merge ) no_merge="1"; shift ;;
     -M | --manual-merge) auto_branch=""; shift ;;
     -b | --mbox ) mbox="$2"; shift 2 ;;
+    -u | --upstream-base ) base="$2"; shift 2 ;;
     -c | --cover) cover="$2"; shift 2 ;;
     -T | --no-cover-tags) cover_tags=""; shift ;;
     -h | --help ) usage; break ;;
@@ -153,7 +155,7 @@ if [ ! -z "$auto_branch" -a ! -z "$cover_msgid" ]; then
              tail -1)
 fi
 
-git checkout -b $branch
+git checkout -b $branch $base
 
 if [ ! -z "$mb2q_normalize" ]; then
   mb2q --mboxout mbox.o "$@" mbox.i
@@ -170,7 +172,7 @@ if [ -z "$merge" ]; then
 else
   git am $am_flags mbox.o
   if [ ! -z "$edits" ] ; then
-    git rebase -i "$target"
+    git rebase -i "${base:-$target}"
   fi
   while [ -d .git/rebase-merge ]; do
     echo -ne "\rWaiting for rebase to finish $(date)"
