@@ -32,15 +32,19 @@ pr_trunc_n()
   fi
 }
 
-date_to_age()
+date_to_hours()
 {
   local past="$1"
 
   now=$(date +%s)
   was=$(date -d "$past" +%s)
 
-  hours=$(( (now - was) / (60 * 60) ))
+  echo $(( (now - was) / (60 * 60) ))
+}
 
+date_to_age()
+{
+  local hours=$(date_to_hours $1)
   echo "$((hours / 24))d $((hours % 24))h"
 }
 
@@ -70,6 +74,7 @@ pw_series_download_mbox()
 pw_series_print_short()
 {
   local series_json="$1"
+  local min_age="$2"
 
   series_subj=$(echo "$series_json" | jq -r '.name')
   patch_subj=$(echo "$series_json" | jq -r '.patches[0].name')
@@ -103,6 +108,13 @@ pw_series_print_short()
       echo "WARNING: Applying to the wrong tree?"
       normal
   fi
+  hours=$(date_to_hours "$date")
+  if [ -n "$min_age" -a $hours -lt $min_age ]; then
+      red
+      bold
+      echo "WARNING: series posted < ${min_age}h ago, have reviewers had enough time?"
+      normal
+  fi
   echo "-----"
 
   if [ "$cover_letter" != "null" ]; then
@@ -132,6 +144,6 @@ mbox_from_series()
 
   series_json=$(curl -s $srv/series/$1/)
 
-  pw_series_print_short "$series_json"
+  pw_series_print_short "$series_json" "$2"
   pw_series_download_mbox "$series_json" mbox.i
 }

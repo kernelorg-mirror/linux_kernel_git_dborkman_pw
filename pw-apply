@@ -103,6 +103,7 @@ cover_tags="y"
 mb2q_normalize="y"
 head_old=$(git rev-parse --verify HEAD)
 base=""
+min_age=24
 while true; do
   case "$1" in
     -3 ) am_flags="$am_flags -3"; shift ;;
@@ -111,6 +112,7 @@ while true; do
     -e | --do-edits ) edits="1"; shift ;;
     -N | --no-mb2q ) mb2q_normalize=""; am_flags="$am_flags -s"; shift ;;
     -P | --no-merge ) no_merge="1"; shift ;;
+    -m | --min-age ) min_age="$2"; shift ;;
     -M | --manual-merge) auto_branch=""; shift ;;
     -b | --mbox ) mbox="$2"; shift 2 ;;
     -u | --upstream-base ) base="$2"; shift 2 ;;
@@ -128,7 +130,7 @@ done
 [ ! -z "$mbox" ]   && [ ! -z "$series" ] && usage
 [   -z "$mbox" ]   && [   -z "$series" ] && [ -z "$cover" ] && usage
 [ ! -z "$accept" ] && [ ! -z "$mbox" ]   && usage
-[ ! -z "$series" ] && mbox_from_series $series
+[ ! -z "$series" ] && mbox_from_series $series $min_age
 [ ! -z "$mbox" ]   && mbox_from_url $mbox
 [ ! -z "$accept" ] && accept_series $series
 [ ! -z "$no_merge" ] && merge=
