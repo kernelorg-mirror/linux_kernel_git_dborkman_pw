@@ -44,7 +44,7 @@ date_to_hours()
 
 date_to_age()
 {
-  local hours=$(date_to_hours $1)
+  local hours=$(date_to_hours "$1")
   echo "$((hours / 24))d $((hours % 24))h"
 }
 
