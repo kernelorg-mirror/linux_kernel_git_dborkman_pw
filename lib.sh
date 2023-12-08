@@ -35,17 +35,67 @@ pr_trunc_n()
 date_to_hours()
 {
   local past="$1"
+  local report_weekend="$2"
 
   now=$(date +%s)
   was=$(date -d "$past" +%s)
 
-  echo $(( (now - was) / (60 * 60) ))
+  # Don't count "weekend time"; sow = Second Of the Week
+  # Epoch started on Thursday, so 3 day offset.
+  ep_off=$(( 3 * 24 * 60 * 60 ))
+  week_sec=$(( 7 * 24 * 60 * 60 ))
+  week_end=$(( 5 * 24 * 60 * 60 ))
+
+  now_sow=$(( (now+ep_off) % week_sec ))
+  was_sow=$(( (was+ep_off) % week_sec ))
+
+  delta=
+  if [ $now_sow -ge $was_sow -a $now_sow -le $week_end ]; then
+    # No adjustment, both during the same week, and no weekend
+    delta=0
+  elif [ $now_sow -lt $was_sow ]; then
+    # The week has wrapped, cut out 2 days
+    delta=$(( -48 * 60 * 60))
+  elif [ $now_sow -gt $week_end ]; then
+    # It's the weekend now, cut out weekend time
+    delta=$(( week_end - now_sow ))
+  else
+    delta=0
+  fi
+
+  if [ "$delta" != "0" -a $was_sow -gt $week_end ]; then
+    # Check if posted on the weekend
+    delta=$(( delta - (week_end - was_sow)))
+  fi
+
+  echo $(( (now - was + delta) / (60 * 60) ))
+  if [ ! -z "$report_weekend" ]; then
+      echo $((-delta / (60 * 60)))
+  fi
+}
+
+hours_days_fmt()
+{
+  local hours="$1"
+  local ds hs
+
+  [ $((hours / 24)) -gt 0 ] && ds="$((hours / 24))d"
+  [ $((hours % 24)) -gt 0 ] && hs="$((hours % 24))h"
+
+  echo $ds $hs
 }
 
 date_to_age()
 {
-  local hours=$(date_to_hours "$1")
-  echo "$((hours / 24))d $((hours % 24))h"
+  local hour_cnt=( $(date_to_hours "$1" yes) )
+  local hours=${hour_cnt[0]}
+  local weekend=${hour_cnt[1]}
+
+  if [ "$weekend" -ne 0 ]; then
+      echo "$(hours_days_fmt "$hours") (+$(hours_days_fmt "$weekend"))"
+  else
+      echo "$(hours_days_fmt "$hours")"
+  fi
 }
 
 subject_remove_tag()
