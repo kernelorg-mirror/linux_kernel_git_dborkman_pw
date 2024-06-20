@@ -161,7 +161,7 @@ $merge_body
 ====================
 
 $tags
-Link: https://lore.kernel.org/r/$pull_msgid
+Link: https://patch.msgid.link/$pull_msgid
 EOF
 else
     # Tag has info in it, just use that
@@ -175,7 +175,7 @@ $merge_body
 ====================
 
 $tags
-Link: https://lore.kernel.org/r/$pull_msgid
+Link: https://patch.msgid.link/$pull_msgid
 EOF
 fi
 

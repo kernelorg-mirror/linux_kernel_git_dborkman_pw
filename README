@@ -404,7 +404,7 @@ check the tests passed in the UI, anyway.
 I use this rather ugly script in applypatch-msg to strip CCs and
 semi-manually propagate tags from the cover letter:
 
-  perl -pi -e 's|^Message-Id:\s*<?([^>]+)>?$|Link: https://lore.kernel.org/r/$1|g;' "$1"
+  perl -pi -e 's|^Message-Id:\s*<?([^>]+)>?$|Link: https://patch.msgid.link/$1|g;' "$1"
 
   # drop the pointless CCs from the commit message
   tag_names_emails=$(echo "@vger.kernel.org";

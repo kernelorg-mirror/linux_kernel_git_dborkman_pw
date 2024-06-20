@@ -196,7 +196,7 @@ $cover_subject
 $body
 ====================
 
-Link: https://lore.kernel.org/r/$cover_msgid
+Link: https://patch.msgid.link/$cover_msgid
 EOF
 else
   git merge --stat --ff $branch
