@@ -1,0 +1,99 @@
+#!/bin/bash -e
+# SPDX-License-Identifier: GPL-2.0
+
+source $(dirname $0)/lib.sh
+
+usage()
+{
+  cat <<-EOF
+  usage: pw-check-override [-p PATCH_ID] [-s SERIES_ID]
+                           [-T CHECK_NAME] [-S CHECK_STATE] [-U USER]
+
+  Display state of checks for the patch or the series.
+  If -T and -S are specified, create such a check.
+  USER only has to be set if such check doesn't currently exist.
+EOF
+  exit
+}
+
+do_patch()
+{
+    local patch=$1
+
+    patch_json=$(curl -s $srv/patches/$patch/)
+    patch_name=$(echo "$patch_json" | jq -r ".name")
+    checks_url=$(echo "$patch_json" | jq -r ".checks")
+    checks_json=$(curl -s $checks_url)
+
+    # Print header
+    bold "Patch $patch: \n"
+    bold "  Subject: $patch_name\n"
+    bold "  Checks:\n"
+
+    checks=( $(echo "$checks_json" | jq -r "[.[].context] | @tsv") )
+    dates=( $(echo "$checks_json" | jq -r "[.[].date] | @tsv") )
+    states=( $(echo "$checks_json" | jq -r "[.[].state] | @tsv") )
+    for i in `seq ${#checks[@]}`; do
+	((i--))
+	i=$(printf "%2d" $i)
+	date=$(date +"%F %R" --date="${dates[i]} UTC")
+	printf "%7d %s - %-10s %s\n" $i "$date" "${states[i]}" "${checks[i]}"
+    done
+
+    # No action, just printing, so we're done.
+    [ -z "$target" ] || [ -z "$state" ] && return
+
+    if [ -z "$check_user" ]; then
+	# Match the user to what's already there.
+	check_user=$(echo "$checks_json" | jq -r '.[] | select(.context=="'$target'") | .user.id' | head -1)
+    fi
+    [ -z "$check_user" ] && echo "No such check and user not set" && return
+
+    echo
+    echo "Set $target to $state (user: $check_user)"
+
+    token=$(git config --get pw.token)
+
+    curl -s -d '{
+    "user": '$check_user',
+    "state": "'$state'",
+    "target_url": "",
+    "context": "'$target'",
+    "description": "Manual override"
+    }' \
+	 -H "Content-Type: application/json" \
+	 -H "Authorization: Token ${token}" \
+	 -X POST $checks_url | jq
+    echo
+    echo "Success"
+}
+
+patch=
+target=
+series=
+state=
+check_user=
+while true; do
+  case "$1" in
+    -p | --patch ) patch="$2"; shift 2 ;;
+    -s | --series ) series="$2"; shift 2 ;;
+    -T | --target ) target="$2"; shift 2 ;;
+    -S | --state ) state="$2"; shift 2 ;;
+    -U | --user ) check_user="$2"; shift 2 ;;
+    -h | --help ) usage; break ;;
+    * )  break ;;
+  esac
+done
+
+srv=$(git config --get pw.server)
+srv=${srv%/} # strip trailing slash
+
+series_json=$(curl -s $srv/series/$series/)
+
+[ ! -z "$patch" ] && do_patch $patch
+
+[ -z "$series" ] && exit 0
+
+for patch in $(echo "$series_json" | jq ".patches.[].id"); do
+    do_patch $patch
+done
