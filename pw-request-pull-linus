@@ -1,0 +1,73 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0
+#
+# Copyright (C) 2019 Daniel Borkmann <daniel@iogearbox.net>
+
+usage()
+{
+  cat <<-EOF
+  usage: pw-request-pull-linus [-h] [-t TREE] [-s SINCE_COMMIT] [-S] [-c] [-d]
+EOF
+  exit
+}
+
+log=""
+remote=""
+since=""
+sign=""
+tree=""
+create=""
+delete=""
+today=$(date +%Y-%m-%d)
+
+while true; do
+  case "$1" in
+    -l | --log ) log="$2"; shift 2 ;;
+    -s | --since ) since="$2"; shift 2 ;;
+    -S | --sign ) sign="bpf-fixes"; shift ;;
+    -c | --tag-create ) create="true"; shift ;;
+    -d | --tag-delete ) delete="true"; shift ;;
+    -t | --tree ) tree="$2"; shift 2 ;;
+    -h | --help ) usage; break ;;
+    * )  break ;;
+  esac
+done
+[ -z "$tree" ]  && usage
+case $tree in
+  bpf-next ) remote=(linus https://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
+  bpf ) remote=(linus https://git.kernel.org/pub/scm/linux/kernel/git/bpf/$tree.git) ;;
+  * ) usage ;;
+esac
+if [ -z "$since" ]; then
+  git fetch ${remote[0]}
+  branch=$(git rev-parse --abbrev-ref HEAD)
+  since=$(git merge-base $branch ${remote[0]}/master)
+fi
+[ -z "$since" ] && usage
+
+old=$(git log $since -n 1 --format=%ct)
+new=$(git log HEAD   -n 1 --format=%ct)
+delta=$((($new - $old)/(60*60*24)+1))
+count=$(git rev-list --no-merges --count $since...HEAD)
+thanks=$(git log --no-merges $since...HEAD --format="%b" | awk '$1 ~ /Reported-by:|Acked-by:|Reviewed-by:|Tested-by:/' | cut -d ' ' -f2- | cut -d '<' -f1 | awk '{$1=$1};1' | grep -v '@' | sort | uniq | sort -n | sed ':a;N;$!ba;s/\n/, /g' | fold -s -w73)
+file="pr-$tree-$today.patch"
+tag=""
+if [ ! -z "$sign" ]; then
+  if [ ! -z "$create" ]; then
+    git tag -s $sign -m "$(cat $log)"
+    git verify-tag $sign
+    git push origin $sign
+    echo "Signed tag $sign pushed to $tree!"
+    exit
+  fi
+  if [ ! -z "$delete" ]; then
+    git push --delete origin $sign
+    git tag -d $sign
+    echo "Signed tag $sign removed from $tree!"
+    exit
+  fi
+  tag="tags/$sign"
+fi
+git request-pull $since ${remote[1]} $sign > $file
+echo -e "Subject: [GIT PULL] bpf for v6.xyz-rcX\n\nHi Linus,\n\n$(cat $file)" > $file
+echo "PR: $file"

@@ -361,6 +361,46 @@ Links:
   https://www.kernel.org/doc/html/latest/process/maintainer-pgp-guide.html
   https://gist.github.com/F21/b0e8c62c49dfab267ff1d0c6af39ab84
 
+7. PRs for Linus:
+~~~~~~~~~~~~~~~~~
+
+  1) Write up the merge message for the signed tag. Make sure it's
+     max 65 chars wide. Example message:
+
+$ cat log.txt
+BPF fixes:
+
+- Fix BPF verifier to force a checkpoint when the program's jump
+  history becomes too long (Eduard Zingerman)
+
+- Add several fixes to the BPF bits iterator addressing issues
+  like memory leaks and overflow problems (Hou Tao)
+
+- Fix an out-of-bounds write in trie_get_next_key (Byeonguk Jeong)
+
+- Fix BPF test infra's LIVE_FRAME frame update after a page has
+  been recycled (Toke Høiland-Jørgensen)
+
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+
+  2) Create and push the signed tag to the tree:
+
+    $ pw-request-pull-linus -t bpf -S -c --log log.txt
+
+  3) Create the pull-request template:
+
+    $ pw-request-pull-linus -t bpf -S
+
+  4) Edit subject: [GIT PULL] bpf for v6.xyz-rcX
+
+  5) Test merge and compile.
+
+  6) Send the PR out:
+
+    $ git send-email --to torvalds@linux-foundation.org --cc bpf@vger.kernel.org --cc netdev@vger.kernel.org --cc linux-kernel@vger.kernel.org --cc alexei.starovoitov@gmail.com --cc andrii@kernel.org --cc daniel@iogearbox.net --cc martin.lau@kernel.org pr-bpf-2024-11-01.patch
+
+  7) Example result: https://lore.kernel.org/bpf/20241031231912.109589-1-daniel@iogearbox.net
+
 Other workflow examples
 -----------------------
 
