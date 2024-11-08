@@ -160,7 +160,7 @@ fi
 git checkout -b $branch $base
 
 if [ ! -z "$mb2q_normalize" ]; then
-  mb2q --mboxout mbox.o "$@" mbox.i
+  rm -f mbox.o && mb2q --mboxout mbox.o "$@" mbox.i
 else
   cp mbox.i mbox.o
 fi
