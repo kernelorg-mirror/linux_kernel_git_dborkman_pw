@@ -82,12 +82,51 @@ accept_series()
 
 cover_from_url()
 {
-  curl -s $1 | gunzip -f -c > tmp.i
-  series=`grep "href=\"/series" tmp.i|cut -d/ -f3|head -1`
-  cover_url=`grep "href=\"/project/netdevbpf/cover" tmp.i|cut -d\" -f2`
-  if [ -z "$cover_url" ]; then
-    merge=
+  local url="$1" srv api proj kind seg id json cover_letter
+
+  srv=$(git config --get pw.server)
+  srv=${srv%/} # strip trailing slash
+  # The msgid filter needs API 1.2, pw.server may be pinned to an older
+  # version, the unversioned endpoint always serves the newest one
+  api=$(echo "$srv" | sed -E 's|/[0-9]+\.[0-9]+$||')
+  proj=$(git config --get pw.project)
+
+  # Patchwork only renders the full page for logged in users these days,
+  # so the series can no longer be scraped out of the HTML. Resolve the
+  # URL via the REST API instead, it needs no authentication.
+  case "$url" in
+    *[?\&]series=* )
+      series=$(echo "$url" | sed -n 's/.*[?&]series=\([0-9]*\).*/\1/p') ;;
+    */series/[0-9]* )
+      series=$(echo "$url" | sed -n 's|.*/series/\([0-9]*\).*|\1|p') ;;
+    */patch/* | */cover/* )
+      case "$url" in
+        */patch/* ) kind="patches"; seg="patch" ;;
+        */cover/* ) kind="covers";  seg="cover" ;;
+      esac
+      id=${url##*/$seg/}
+      id=${id%%/*}
+      # message ids come percent encoded out of the browser's URL bar
+      id=${id//%/\\x}
+      id=${id@E}
+      if [[ "$id" =~ ^[0-9]+$ ]]; then
+        json=$(curl -s "$srv/$kind/$id/")
+      else
+        json=$(curl -s -G "$api/$kind/" \
+                    --data-urlencode "project=$proj" \
+                    --data-urlencode "msgid=$id" |
+                 jq --arg msgid "<$id>" '.[] | select(.msgid == $msgid)')
+      fi
+      series=$(echo "$json" | jq -r '.series[0].id // empty' | head -1) ;;
+  esac
+
+  if [ -z "$series" ]; then
+    echo "Can't resolve a series out of $url" >&2
+    exit 1
   fi
+
+  cover_letter=$(curl -s "$srv/series/$series/" | jq -r '.cover_letter')
+  [ "$cover_letter" == "null" ] && merge=
 }
 
 auto_branch="1"
