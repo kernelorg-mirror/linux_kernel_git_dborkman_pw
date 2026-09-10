@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Message-ID: <dc775eaaaf5672fdeebff740e5e0b3bf376d8b4e.1789068198.git.daniel@iogearbox.net>
+In-Reply-To: <2ca0b7c4800e127f895244126b1bc3100b58b58b.1789068198.git.daniel@iogearbox.net>
+References: <2ca0b7c4800e127f895244126b1bc3100b58b58b.1789068198.git.daniel@iogearbox.net>
+From: Daniel Borkmann <daniel@iogearbox.net>
+Date: Thu, 10 Sep 2026 21:23:11 +0200
+Subject: [PATCH] mb2q: Drop the Assisted-by: tag
+
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+---
+ mb2q | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/mb2q b/mb2q
+index bc57770..1de2b3a 100755
+--- a/mb2q
++++ b/mb2q
+@@ -234,11 +234,18 @@ tags_reply = [
+     'Acked-by',
+ ]
+ 
++tag_drop = [
++    'Assisted-by',
++]
++
+ re_tags = []
++re_drop = []
+ 
+ def compile_tags():
+     for tag in tag_order:
+         re_tags.append(re.compile('^%s:' %tag, re.IGNORECASE))
++    for tag in tag_drop:
++        re_drop.append(re.compile('^%s:' %tag, re.IGNORECASE))
+ 
+ class patchmsg(object):
+     '''
+@@ -374,6 +381,11 @@ re_tags = []
+     def scan_tag(self, txt):
+         i = 0
+         txt = txt.strip()
++        # Consume tags which are dropped on the floor. Treat them like any
++        # other tag so they don't drag the surrounding text around.
++        for r in re_drop:
++            if r.search(txt):
++                return True
+         for r in re_tags:
+             m = r.search(txt)
+             if m:

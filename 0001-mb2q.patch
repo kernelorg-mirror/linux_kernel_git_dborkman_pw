@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+Message-ID: <2ca0b7c4800e127f895244126b1bc3100b58b58b.1789068198.git.daniel@iogearbox.net>
+From: Daniel Borkmann <daniel@iogearbox.net>
+Date: Thu, 10 Sep 2026 21:22:58 +0200
+Subject: [PATCH] mb2q: Recognize the Closes: tag
+
+Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+---
+ mb2q | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/mb2q b/mb2q
+index ef16638..bc57770 100755
+--- a/mb2q
++++ b/mb2q
+@@ -207,6 +207,7 @@ tag_order = [
+     'Fixes',
+     'Reported-and-tested-by',
+     'Reported-by',
++    'Closes',
+     'Debugged-by',
+     'Suggested-by',
+     'Originally-from',
+@@ -223,6 +224,7 @@ tag_order = [
+ 
+ tag_nomail = [
+     'Fixes',
++    'Closes',
+     'Link',
+ ]
+ 
