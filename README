@@ -114,6 +114,12 @@ Another example without adding optional tags, this time from lore:
 
   $ pw-apply -b https://lore.kernel.org/bpf/20190925203745.3173184-1-andriin@fb.com/t.mbox.gz
 
+When the -b URL points at a patchwork series, the series is looked up over
+the REST API of that same patchwork instance and the cover letter is picked
+up from there, so the result is the same merge commit that -s produces. A
+lore thread has no such context and is applied as a plain series of
+patches instead.
+
 Similar example with adding an explicit merge commit with branch name
 bpf-foo-bar:
 

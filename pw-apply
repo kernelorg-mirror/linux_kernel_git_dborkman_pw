@@ -20,6 +20,39 @@ mbox_from_url()
   curl $1 | gunzip -f -c > mbox.i
 }
 
+# A stand-alone mbox carries no patchwork context, but a series mbox URL
+# names the series it was rendered from. Resolve it over the REST API so
+# that -b gets the same cover letter handling as -s. Address the host of
+# the URL itself rather than pw.server, the mbox is what the user asked
+# for and it may well live on another patchwork instance.
+series_from_mbox_url()
+{
+  local url="$1" host id json
+
+  case "$url" in
+    http://* | https://* ) host=${url#*://}; host=${host%%/*} ;;
+    * ) return 1 ;;
+  esac
+
+  # Only a whole series can be auto-merged, a single patch or cover mbox
+  # does not hold the patches the series JSON would promise
+  case "$url" in
+    *[?\&]series=* )
+      id=$(echo "$url" | sed -n 's/.*[?&]series=\([0-9]*\).*/\1/p') ;;
+    */series/[0-9]* )
+      id=$(echo "$url" | sed -n 's|.*/series/\([0-9]*\).*|\1|p') ;;
+    * ) return 1 ;;
+  esac
+  [ -z "$id" ] && return 1
+
+  json=$(curl -s "https://$host/api/series/$id/")
+  echo "$json" | jq -e '.id?' > /dev/null 2>&1 || return 1
+
+  series_json="$json"
+  pw_series_print_short "$series_json" "$2"
+  return 0
+}
+
 get_cover()
 {
   cover_json=$(echo "$series_json" | jq '.cover_letter')
@@ -165,12 +198,20 @@ done
 # Load the info from cover first, it may will populate $series and $merge
 [ ! -z "$cover" ]  && cover_from_url $cover
 
-[ ! -z "$auto_branch" ] && [ -z "$series" ] && usage
 [ ! -z "$mbox" ]   && [ ! -z "$series" ] && usage
 [   -z "$mbox" ]   && [   -z "$series" ] && [ -z "$cover" ] && usage
 [ ! -z "$accept" ] && [ ! -z "$mbox" ]   && usage
 [ ! -z "$series" ] && mbox_from_series $series $min_age
-[ ! -z "$mbox" ]   && mbox_from_url $mbox
+if [ ! -z "$mbox" ]; then
+  # Pick up the series behind a patchwork mbox URL, so that -b merges
+  # with the cover letter just like -s does. Anything else, a lore
+  # thread, has to be applied without one.
+  if ! series_from_mbox_url "$mbox" "$min_age" && [ ! -z "$auto_branch" ]; then
+    auto_branch=""
+    merge=
+  fi
+  mbox_from_url "$mbox"
+fi
 [ ! -z "$accept" ] && accept_series $series
 [ ! -z "$no_merge" ] && merge=
 
