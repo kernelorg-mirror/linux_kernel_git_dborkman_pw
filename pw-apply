@@ -17,7 +17,11 @@ EOF
 
 mbox_from_url()
 {
-  curl $1 | gunzip -f -c > mbox.i
+  if [ -f "$1" ]; then
+    gunzip -f -c < "$1" > mbox.i
+  else
+    curl $1 | gunzip -f -c > mbox.i
+  fi
 }
 
 # A stand-alone mbox carries no patchwork context, but a series mbox URL
@@ -205,7 +209,7 @@ done
 if [ ! -z "$mbox" ]; then
   # Pick up the series behind a patchwork mbox URL, so that -b merges
   # with the cover letter just like -s does. Anything else, a lore
-  # thread, has to be applied without one.
+  # thread or a local mbox, has to be applied without one.
   if ! series_from_mbox_url "$mbox" "$min_age" && [ ! -z "$auto_branch" ]; then
     auto_branch=""
     merge=
