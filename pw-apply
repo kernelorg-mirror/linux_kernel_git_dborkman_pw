@@ -260,7 +260,8 @@ else
   if [ ! -z "$edits" ] ; then
     git rebase -i "${base:-$target}"
   fi
-  while [ -d .git/rebase-merge ]; do
+  rebase_dir=$(git rev-parse --git-path rebase-merge)
+  while [ -d "$rebase_dir" ]; do
     echo -ne "\rWaiting for rebase to finish $(date)"
     sleep 0.5
   done
