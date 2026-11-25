@@ -249,14 +249,12 @@ else
   cp mbox.i mbox.o
 fi
 
-if [ -z "$merge" ]; then
-  flags=$am_flags
-  # When running without mb2q ask git-am for msgid, and have a git hook
-  # transform that into a lore Link.
-  [ -z "$mb2q_normalize" ] && flags="$flags -m"
-  git am $flags mbox.o
-else
-  git am $am_flags mbox.o
+# When running without mb2q ask git-am for msgid, and have a git hook
+# transform that into a lore Link.
+[ -z "$mb2q_normalize" ] && am_flags="$am_flags -m"
+
+git am $am_flags mbox.o
+if [ ! -z "$merge" ]; then
   if [ ! -z "$edits" ] ; then
     git rebase -i "${base:-$target}"
   fi
